@@ -47,6 +47,7 @@ linters = [
   "ruff check",
   "flake8",
   "mypy",
+  "pyright",
 ]
 
 # vim:se sw=2:

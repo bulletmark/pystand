@@ -18,7 +18,7 @@ import urllib.request
 from argparse import ArgumentParser, Namespace
 from collections import defaultdict
 from pathlib import Path
-from typing import Iterable, Iterator, Optional
+from typing import Any, Iterable, Iterator, Optional
 
 import argcomplete
 import platformdirs
@@ -90,7 +90,7 @@ def set_json(file: Path, data: dict) -> Optional[str]:
 # The gh handle is an opaque github instance handle
 get_gh_handle = None
 
-def get_gh(args: Namespace):
+def get_gh(args: Namespace) -> Any:
     'Return a GitHub handle'
     # The gh handle is a global to lazily create it only if/when needed
     global get_gh_handle
@@ -191,7 +191,7 @@ def get_latest_release_tag(args: Namespace) -> str:
     args._latest_release.write_text(tag + '\n')
     return tag
 
-def get_release_files(args, tag, implementation: str = None) -> dict:
+def get_release_files(args, tag, implementation: Optional[str] = None) -> dict:
     'Return the release files for the given tag'
     # Look for tag data in our release cache
     jfile = args._releases / tag
