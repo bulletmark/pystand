@@ -22,7 +22,7 @@ from typing import Any, Iterable, Iterator, Optional
 
 import argcomplete
 import platformdirs
-from packaging.version import Version
+from packaging.version import parse as parse_version
 
 REPO_OWNER = 'indygreg'
 REPO = 'python-build-standalone'
@@ -113,7 +113,7 @@ def rm_path(path: Path) -> None:
 class VersionMatcher:
     'Match a version string to a list of versions'
     def __init__(self, seq: Iterable[str]) -> None:
-        self.seq = sorted(seq, key=Version, reverse=True)
+        self.seq = sorted(seq, key=parse_version, reverse=True)
 
     def match(self, version: str, *,
               upconvert_minor: bool = False) -> Optional[str]:
@@ -165,7 +165,8 @@ def get_version_names(args: Namespace) -> list[str]:
         unknowns = [f'"{u}"' for u in unknown]
         sys.exit(f'Error: version{s} {", ".join(unknowns)} not found.')
 
-    return sorted(all_names - given, key=Version) if args.all else versions
+    return sorted(all_names - given, key=parse_version) \
+            if args.all else versions
 
 def get_latest_release_tag(args: Namespace) -> str:
     'Return the latest release tag'
@@ -225,6 +226,48 @@ def get_release_files(args, tag, implementation: Optional[str] = None) -> dict:
             sys.exit(f'Failed to write release {tag} file {jfile}: {error}')
 
     return files.get(implementation, {}) if implementation else files
+
+def update_version_symlinks(args: Namespace) -> None:
+    'Create/update symlinks pointing to latest version'
+    base = args._versions
+    if not base.exists():
+        return
+
+    # Record of all the existing symlinks and version dirs
+    oldlinks = {}
+    vers = []
+    for path in base.iterdir():
+        if not path.name.startswith('.'):
+            if path.is_symlink():
+                oldlinks[path.name] = os.readlink(str(path))
+            else:
+                vers.append(path)
+
+    # Create a map of all the new major version links
+    newlinks_all = defaultdict(list)
+    for path in vers:
+        namevers = path.name
+        while '.' in namevers[:-1]:
+            namevers_major = namevers.rsplit('.', maxsplit=1)[0]
+            newlinks_all[namevers_major].append(namevers)
+            namevers = namevers_major
+
+    newlinks = {k: sorted(v, key=parse_version)[-1] for k, v in
+                newlinks_all.items()}
+
+    # Remove all old or invalid existing links
+    for name, tgt in oldlinks.items():
+        new_tgt = newlinks.get(name)
+        if not new_tgt or new_tgt != tgt:
+            path = Path(base / name)
+            path.unlink()
+
+    # Create all needed new links
+    for name, tgt in newlinks.items():
+        old_tgt = oldlinks.get(name)
+        if not old_tgt or old_tgt != tgt:
+            path = Path(base / name)
+            path.symlink_to(tgt, target_is_directory=True)
 
 def purge_unused_releases(args: Namespace) -> None:
     'Purge old releases that are no longer needed and have expired'
@@ -405,6 +448,7 @@ def main() -> Optional[str]:
     args._releases.mkdir(parents=True, exist_ok=True)
 
     result = args.func(args)
+    update_version_symlinks(args)
     purge_unused_releases(args)
     return result
 
@@ -609,7 +653,7 @@ class _show(COMMAND):
                 installed[vdir.name] = distro
 
         installable = False
-        for version in sorted(files, key=Version):
+        for version in sorted(files, key=parse_version):
             installed_distribution = installed.get(version)
             for distribution in files[version]:
                 app = ' (installed)' \

@@ -297,6 +297,13 @@ Note, consistent with this, you actually don't need to specify a
 minor version, e.g. `pystand install 3` would also install `3.12.3`
 (assuming `3.12.3` is the latest available version for Python 3).
 
+After installs or updates or removals,`pystand` also maintains symbolic
+links to each latest installed version in it's version directory, e.g. a
+symlink `~/.local/share/pystand/versions/3.12` will be created pointing
+to `~/.local/share/pystand/versions/3.12.3` so that you can optionally
+hard code the symlink directory in places where it can not be set
+dynamically (i.e. where using `pystand path` is not an option).
+
 ## Command Default Options
 
 You can add default global options to a personal configuration file
