@@ -505,6 +505,9 @@ class _update(COMMAND):
         parser.add_argument('--skip', action='store_true',
                             help='skip the specified versions when '
                             'updating all (only can be specified with --all)')
+        parser.add_argument('-k', '--keep', action='store_true',
+                            help='keep old version after updating (but only '
+                            'if different version number)')
         parser.add_argument('version', nargs='*',
                             help='version to update (or to skip for '
                             '--all --skip)')
@@ -526,6 +529,12 @@ class _update(COMMAND):
                 continue
 
             nextver = matcher.match(version, upconvert_minor=True)
+            if nextver == version and args.keep:
+                print(f'Error: {fmt(version, release)} would not be kept '
+                      f'if update to {fmt(nextver, release_target)} '
+                      f'distribution="{distribution}"', file=sys.stderr)
+                continue
+
             new_vdir = args._versions / nextver
             if nextver != version and new_vdir.exists():
                 continue
@@ -542,7 +551,7 @@ class _update(COMMAND):
                                 files):
                 return error
 
-            if nextver != version:
+            if nextver != version and not args.keep:
                 remove(args, version)
 
 @COMMAND.add

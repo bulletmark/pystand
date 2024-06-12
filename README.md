@@ -166,7 +166,7 @@ options:
 ### Command `update`
 
 ```
-usage: pystand update [-h] [-r RELEASE] [-a] [--skip] [version ...]
+usage: pystand update [-h] [-r RELEASE] [-a] [--skip] [-k] [version ...]
 
 Update one, more, or all versions to another release.
 
@@ -181,6 +181,8 @@ options:
   -a, --all             update ALL versions
   --skip                skip the specified versions when updating all (only
                         can be specified with --all)
+  -k, --keep            keep old version after updating (but only if different
+                        version number)
 ```
 
 ### Command `remove`
