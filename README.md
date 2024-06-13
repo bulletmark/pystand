@@ -2,8 +2,8 @@
 [![PyPi](https://img.shields.io/pypi/v/pystand)](https://pypi.org/project/pystand/)
 [![AUR](https://img.shields.io/aur/version/pystand)](https://aur.archlinux.org/packages/pystand/)
 
-[`pystand`][pystand] is a command line tool to facilitate the
-installation and update of pre-built Python versions from the
+[`pystand`][pystand] is a command line tool to facilitate the download,
+installation, and update of pre-built Python versions from the
 [`python-build-standalone`][pbs] project. The following commands are
 provided:
 
@@ -104,8 +104,9 @@ usage: pystand [-h] [-D DISTRIBUTION] [-B BASE_DIR] [-C CACHE_MINUTES]
                   [--purge-days PURGE_DAYS] [-V]
                   {install,update,remove,list,show,path} ...
 
-Command line tool to install pre-built Python versions from the python-build-
-standalone project.
+Command line tool to download, install, and update pre-built Python versions
+from the python-build-standalone project at
+https://github.com/indygreg/python-build-standalone.
 
 options:
   -h, --help            show this help message and exit

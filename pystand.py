@@ -1,8 +1,9 @@
 #!/usr/bin/python3
 # PYTHON_ARGCOMPLETE_OK
 '''
-Command line tool to install pre-built Python versions from the
-python-build-standalone project.
+Command line tool to download, install, and update pre-built Python
+versions from the python-build-standalone project at
+https://github.com/indygreg/python-build-standalone.
 '''
 from __future__ import annotations
 
