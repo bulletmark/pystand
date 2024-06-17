@@ -198,6 +198,11 @@ def get_release_files(args, tag, implementation: Optional[str] = None) -> dict:
     # Look for tag data in our release cache
     jfile = args._releases / tag
     if not (files := get_json(jfile)):
+
+        # May have read this release before but it has no assets
+        if jfile.exists():
+            return {}
+
         # Not in cache so fetch it (and also store in cache)
         gh = get_gh(args)
         try:
@@ -473,7 +478,7 @@ class _install(COMMAND):
         release = args.release or get_latest_release_tag(args)
         files = get_release_files(args, release, 'cpython')
         if not files:
-            return f'Release "{release}" not found.'
+            return f'Release "{release}" not found, or has no compatible files.'
 
         matcher = VersionMatcher(files)
         for version in args.version:
@@ -529,6 +534,11 @@ class _update(COMMAND):
                 continue
 
             nextver = matcher.match(version, upconvert_minor=True)
+
+            distribution = data.get('distribution')
+            if not distribution or distribution not in files.get(nextver, {}):
+                continue
+
             if nextver == version and args.keep:
                 print(f'Error: {fmt(version, release)} would not be kept '
                       f'if update to {fmt(nextver, release_target)} '
@@ -537,10 +547,6 @@ class _update(COMMAND):
 
             new_vdir = args._versions / nextver
             if nextver != version and new_vdir.exists():
-                continue
-
-            distribution = data.get('distribution')
-            if not distribution or distribution not in files.get(nextver, {}):
                 continue
 
             print(f'{fmt(version, release)} updating to '
