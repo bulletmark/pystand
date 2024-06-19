@@ -31,6 +31,13 @@ GITHUB_REPO = f'{REPO_OWNER}/{REPO}'
 LATEST_RELEASE_URL = f'https://raw.githubusercontent.com/{GITHUB_REPO}'\
         '/latest-release/latest-release.json'
 
+# The following release is the first one that supports "install_only"
+# builds so this tool does not support any releases before this.
+FIRST_RELEASE = '20210724'
+
+# The following regexp pattern is used to match the end of a release file name
+ENDPAT = r'-install_only[-\dT]*.tar.gz$'
+
 PROG = Path(__file__).stem
 CNFFILE = platformdirs.user_config_path(f'{PROG}-flags.conf')
 
@@ -169,8 +176,18 @@ def get_version_names(args: Namespace) -> list[str]:
     return sorted(all_names - given, key=parse_version) \
             if args.all else versions
 
-def get_latest_release_tag(args: Namespace) -> str:
-    'Return the latest release tag'
+def get_release_tag(args: Namespace) -> str:
+    'Return the release tag, or latest if not specified'
+    if release := args.release:
+        if not release.isdigit() or len(release) != len(FIRST_RELEASE):
+            sys.exit('Release must be a YYYYMMDD string.')
+        if release < FIRST_RELEASE:
+            sys.exit(f'Releases before "{FIRST_RELEASE}" do not '
+                     'include "*-install_only" builds so are '
+                     'not supported.')
+
+        return release
+
     if args._latest_release.exists():
         stat = args._latest_release.stat()
         if time.time() < (stat.st_mtime + int(args.cache_minutes * 60)):
@@ -193,6 +210,15 @@ def get_latest_release_tag(args: Namespace) -> str:
     args._latest_release.write_text(tag + '\n')
     return tag
 
+def get_release_name(filename: str) -> Optional[str]:
+    'Search for and strip the release name from the file name'
+    if not (m := re.search(ENDPAT, filename)):
+        return None
+
+    # Strip of end of file name and also strip any +8 digit embedded
+    # release date
+    return re.sub(r'\+\d{8}', '', filename[:m.start()])
+
 def get_release_files(args, tag, implementation: Optional[str] = None) -> dict:
     'Return the release files for the given tag'
     # Look for tag data in our release cache
@@ -212,17 +238,11 @@ def get_release_files(args, tag, implementation: Optional[str] = None) -> dict:
 
         # Iterate over the release assets and store the files in a dict to
         # return
-        end = '-install_only.tar.gz'
         for file in release.get_assets():
-            name = file.name
-            if not name.endswith(end):
+            if not (name := get_release_name(file.name)):
                 continue
 
-            name = name[:-len(end)]
-            impl_ver, rest = name.split('+', maxsplit=1)
-            impl, ver = impl_ver.split('-', maxsplit=1)
-            rest = rest.split('-', maxsplit=1)[1]
-
+            impl, ver, rest = name.split('-', maxsplit=2)
             if impl not in files:
                 files[impl] = defaultdict(dict)
 
@@ -475,7 +495,7 @@ class _install(COMMAND):
 
     @staticmethod
     def run(args: Namespace) -> Optional[str]:
-        release = args.release or get_latest_release_tag(args)
+        release = get_release_tag(args)
         files = get_release_files(args, release, 'cpython')
         if not files:
             return f'Release "{release}" not found, or has no compatible files.'
@@ -519,7 +539,7 @@ class _update(COMMAND):
 
     @staticmethod
     def run(args: Namespace) -> Optional[str]:
-        release_target = args.release or get_latest_release_tag(args)
+        release_target = get_release_tag(args)
         files = get_release_files(args, release_target, 'cpython')
         if not files:
             return f'Release "{release_target}" not found.'
@@ -602,7 +622,7 @@ class _list(COMMAND):
 
     @staticmethod
     def run(args: Namespace) -> Optional[str]:
-        release_target = args.release or get_latest_release_tag(args)
+        release_target = get_release_tag(args)
         files = get_release_files(args, release_target, 'cpython')
         if not files:
             return f'Release "{release_target}" not found.'
@@ -656,7 +676,7 @@ class _show(COMMAND):
 
     @staticmethod
     def run(args: Namespace) -> None:
-        release = args.release or get_latest_release_tag(args)
+        release = get_release_tag(args)
         files = get_release_files(args, release, 'cpython')
         if not files:
             sys.exit(f'Error: release "{release}" not found.')
