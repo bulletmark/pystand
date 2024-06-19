@@ -18,6 +18,7 @@ import time
 import urllib.request
 from argparse import ArgumentParser, Namespace
 from collections import defaultdict
+from datetime import date
 from pathlib import Path
 from typing import Any, Iterable, Iterator, Optional
 
@@ -34,6 +35,9 @@ LATEST_RELEASE_URL = f'https://raw.githubusercontent.com/{GITHUB_REPO}'\
 # The following release is the first one that supports "install_only"
 # builds so this tool does not support any releases before this.
 FIRST_RELEASE = '20210724'
+
+# Sample release tag for documentation/usage examples
+SAMPL_RELEASE = '20240415'
 
 # The following regexp pattern is used to match the end of a release file name
 ENDPAT = r'-install_only[-\dT]*.tar.gz$'
@@ -183,15 +187,27 @@ def get_version_names(args: Namespace) -> list[str]:
     return sorted(all_names - given, key=parse_version) \
             if args.all else versions
 
+def check_release_tag(release: str, *,
+                      check_first: bool = True) -> Optional[str]:
+    'Check the specified release tag is valid'
+    if not release.isdigit() or len(release) != len(FIRST_RELEASE):
+        return 'Release must be a YYYYMMDD string.'
+
+    try:
+        _ = date.fromisoformat(f'{release[:4]}-{release[4:6]}-{release[6:]}')
+    except Exception:
+        return 'Release must be a YYYYMMDD date string.'
+
+    if check_first and release < FIRST_RELEASE:
+        return f'Releases before "{FIRST_RELEASE}" do not include '\
+                '"*-install_only" builds so are not supported.'
+    return None
+
 def get_release_tag(args: Namespace) -> str:
     'Return the release tag, or latest if not specified'
     if release := args.release:
-        if not release.isdigit() or len(release) != len(FIRST_RELEASE):
-            sys.exit('Release must be a YYYYMMDD string.')
-        if release < FIRST_RELEASE:
-            sys.exit(f'Releases before "{FIRST_RELEASE}" do not '
-                     'include "*-install_only" builds so are '
-                     'not supported.')
+        if err := check_release_tag(release):
+            sys.exit(err)
 
         return release
 
@@ -207,12 +223,12 @@ def get_release_tag(args: Namespace) -> str:
         with urllib.request.urlopen(LATEST_RELEASE_URL) as url:
             data = json.load(url)
     except Exception:
-        sys.exit('Failed to fetch latest release tag.')
+        sys.exit('Failed to fetch latest YYYYMMDD release tag.')
 
     tag = data.get('tag')
 
     if not tag:
-        sys.exit('Latest release tag timestamp file is corrupted.')
+        sys.exit('Latest YYYYMMDD release tag timestamp file is corrupted.')
 
     args._latest_release.write_text(tag + '\n')
     return tag
@@ -407,11 +423,11 @@ def main() -> Optional[str]:
                      help=f'specify {PROG} base dir for storing '
                      'versions and metadata. Default is "%(default)s"')
     opt.add_argument('-C', '--cache-minutes', default=60, type=float,
-                     help='cache latest release tag fetch for this many '
-                     'minutes, before rechecking for latest. '
+                     help='cache latest YYYYMMDD release tag fetch for this '
+                     'many minutes, before rechecking for latest. '
                      'Default is %(default)d minutes')
     opt.add_argument('--purge-days', default=90, type=int,
-                     help='cache release file lists for this number '
+                     help='cache YYYYMMDD release file lists for this number '
                      'of days after last version referencing it is removed. '
                      'Default is %(default)d days')
     opt.add_argument('--github-access-token',
@@ -495,7 +511,7 @@ class _install(COMMAND):
     def init(parser: ArgumentParser) -> None:
         parser.add_argument('-r', '--release',
                             help=f'install from specified {REPO} '
-                            'release (e.g. 20240415), '
+                            f'YYYYMMDD release (e.g. {SAMPL_RELEASE}), '
                             'default is latest release')
         parser.add_argument('-f', '--force', action='store_true',
                             help='force install even if already installed')
@@ -532,8 +548,8 @@ class _update(COMMAND):
     @staticmethod
     def init(parser: ArgumentParser) -> None:
         parser.add_argument('-r', '--release',
-                            help='update to specified release (e.g. 20240415), '
-                            'default is latest release')
+                            help='update to specified YYYMMDD release (e.g. '
+                            f'{SAMPL_RELEASE}), default is latest release')
         parser.add_argument('-a', '--all', action='store_true',
                             help='update ALL versions')
         parser.add_argument('--skip', action='store_true',
@@ -600,18 +616,23 @@ class _remove(COMMAND):
                             help='skip the specified versions when '
                             'removing all (only can be specified with --all)')
         parser.add_argument('-r', '--release',
-                            help='only remove versions if from '
-                            'specified release (e.g. 20240415)')
+                            help='only remove versions if from specified '
+                            f'YYYMMDD release (e.g. {SAMPL_RELEASE})')
         parser.add_argument('version', nargs='*',
                             help='version to remove (or to skip for '
                             '--all --skip)')
 
     @staticmethod
     def run(args: Namespace) -> Optional[str]:
+        release_del = args.release
+        if release_del and \
+                (err := check_release_tag(release_del, check_first=False)):
+            return err
+
         for version in get_version_names(args):
             dfile = args._versions / version / args._data
             release = get_json(dfile).get('release') or '?'
-            if not args.release or release == args.release:
+            if not release_del or release == release_del:
                 remove(args, version)
                 print(f'Version {fmt(version, release)} removed.')
 
@@ -624,8 +645,9 @@ class _list(COMMAND):
                             help='explicitly report why a version is '
                             'not eligible for update')
         parser.add_argument('-r', '--release',
-                            help='use specified release (e.g. 20240415) for '
-                            'verbose compare, default is latest release')
+                            help='use specified YYYYMMDD release '
+                            f'(e.g. {SAMPL_RELEASE}) for verbose compare, '
+                            'default is latest release')
         parser.add_argument('version', nargs='*',
                             help='only list specified version, else all')
 
@@ -680,8 +702,8 @@ class _show(COMMAND):
                             help='also show all available distributions for '
                             'each version from the release')
         parser.add_argument('release', nargs='?',
-                            help=f'{REPO} release to show (e.g. 20240415), '
-                            'default is latest release')
+                            help=f'{REPO} YYYYMMDD release to show (e.g. '
+                            f'{SAMPL_RELEASE}), default is latest release')
 
     @staticmethod
     def run(args: Namespace) -> None:

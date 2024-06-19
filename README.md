@@ -17,7 +17,7 @@ provided:
 |`path`   |Show path prefix to installed version base directory                  |
 
 By default, Python versions are sourced from the latest
-`python-build-standalone` [release][pbs-rel] available but you can
+`python-build-standalone` [release][pbs-rel] available (e.g. "`20240415`") but you can
 optionally specify any older release. The required
 [distribution](https://gregoryszorc.com/docs/python-build-standalone/main/running.html)
 for your machine architecture is normally auto-detected but can be
@@ -83,8 +83,8 @@ $ pipx install --python $(pystand path -p 3.12) cowsay
 See detailed usage information in the [Usage](#usage) section that
 follows.
 
-Note that unlike nearly all similar tools such as [`pyenv`][pyenv], [`pdm
-python`][pdmpy], and [`hatch python`][hatchpy], `pystand` directly
+Note that unlike nearly all similar tools such as [`pyenv`][pyenv],
+[`pdm python`][pdmpy], and [`hatch python`][hatchpy], `pystand` directly
 checks the [`python-build-standalone`][pbs] github site to fetch for new
 [releases][pbs-rel] but those other tools require a software update
 before they can see new releases. This means that Python updates are
@@ -120,12 +120,13 @@ options:
                         specify pystand base dir for storing versions and
                         metadata. Default is "$HOME/.local/share/pystand"
   -C CACHE_MINUTES, --cache-minutes CACHE_MINUTES
-                        cache latest release tag fetch for this many minutes,
-                        before rechecking for latest. Default is 60 minutes
+                        cache latest YYYYMMDD release tag fetch for this many
+                        minutes, before rechecking for latest. Default is 60
+                        minutes
   --purge-days PURGE_DAYS
-                        cache release file lists for this number of days after
-                        last version referencing it is removed. Default is 90
-                        days
+                        cache YYYYMMDD release file lists for this number of
+                        days after last version referencing it is removed.
+                        Default is 90 days
   --github-access-token GITHUB_ACCESS_TOKEN
                         Optional Github access token. Can specify to reduce
                         rate limiting.
@@ -162,8 +163,9 @@ positional arguments:
 options:
   -h, --help            show this help message and exit
   -r RELEASE, --release RELEASE
-                        install from specified python-build-standalone release
-                        (e.g. 20240415), default is latest release
+                        install from specified python-build-standalone
+                        YYYYMMDD release (e.g. 20240415), default is latest
+                        release
   -f, --force           force install even if already installed
 ```
 
@@ -180,8 +182,8 @@ positional arguments:
 options:
   -h, --help            show this help message and exit
   -r RELEASE, --release RELEASE
-                        update to specified release (e.g. 20240415), default
-                        is latest release
+                        update to specified YYYMMDD release (e.g. 20240415),
+                        default is latest release
   -a, --all             update ALL versions
   --skip                skip the specified versions when updating all (only
                         can be specified with --all)
@@ -205,8 +207,8 @@ options:
   --skip                skip the specified versions when removing all (only
                         can be specified with --all)
   -r RELEASE, --release RELEASE
-                        only remove versions if from specified release (e.g.
-                        20240415)
+                        only remove versions if from specified YYYMMDD release
+                        (e.g. 20240415)
 ```
 
 ### Command `list`
@@ -224,8 +226,8 @@ options:
   -v, --verbose         explicitly report why a version is not eligible for
                         update
   -r RELEASE, --release RELEASE
-                        use specified release (e.g. 20240415) for verbose
-                        compare, default is latest release
+                        use specified YYYYMMDD release (e.g. 20240415) for
+                        verbose compare, default is latest release
 ```
 
 ### Command `show`
@@ -236,7 +238,7 @@ usage: pystand show [-h] [-d] [release]
 Show versions available from a release.
 
 positional arguments:
-  release              python-build-standalone release to show (e.g.
+  release              python-build-standalone YYYYMMDD release to show (e.g.
                        20240415), default is latest release
 
 options:
@@ -290,8 +292,8 @@ $ pipx uninstall pystand
 `pystand` extrapolates any version text you specify on the command line
 to the latest available corresponding installed or release version. For
 example, if you specify `pystand install 3.12` then `pystand` will look
-in the release files to find the latest (i.e. highest) available
-version of `3.12`, e.g. `3.12.3` (at the time of writing), and will install
+in the release files to find the latest (i.e. highest) available version
+of `3.12`, e.g. `3.12.3` (at the time of writing), and will install
 that. Of course you can specify the exact version if you wish, e.g.
 `3.12.3` but generally you don't need to bother. This is true for any
 command that takes a version argument so be aware that this may be
