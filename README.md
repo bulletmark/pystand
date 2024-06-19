@@ -101,7 +101,8 @@ Type `pystand` or `pystand -h` to view the usage summary:
 
 ```
 usage: pystand [-h] [-D DISTRIBUTION] [-B BASE_DIR] [-C CACHE_MINUTES]
-                  [--purge-days PURGE_DAYS] [-V]
+                  [--purge-days PURGE_DAYS]
+                  [--github-access-token GITHUB_ACCESS_TOKEN] [-V]
                   {install,update,remove,list,show,path} ...
 
 Command line tool to download, install, and update pre-built Python versions
@@ -123,8 +124,11 @@ options:
                         before rechecking for latest. Default is 60 minutes
   --purge-days PURGE_DAYS
                         cache release file lists for this number of days after
-                        last version referencing it is removed. Default is 30
+                        last version referencing it is removed. Default is 90
                         days
+  --github-access-token GITHUB_ACCESS_TOKEN
+                        Optional Github access token. Can specify to reduce
+                        rate limiting.
   -V                    show pystand version
 
 Commands:
@@ -317,8 +321,8 @@ anything after on a line) are ignored. Type `pystand` to see all
 supported options.
 
 The global options: `--distribution`, `--base-dir`, `--cache-minutes`,
-`--purge-days` are the only sensible candidates to consider setting as
-defaults.
+`--purge-days`, `--github-access-token` are the only sensible candidates
+to consider setting as defaults.
 
 ## Command Line Tab Completion
 

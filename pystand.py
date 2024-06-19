@@ -106,7 +106,14 @@ def get_gh(args: Namespace) -> Any:
         return get_gh_handle
 
     from github import Github
-    get_gh_handle = Github()  # type: ignore
+    if args.github_access_token:
+        from github import Auth
+        auth = Auth.Token(args.github_access_token)
+    else:
+        auth = None
+
+    # Save this handle globally for future use
+    get_gh_handle = Github(auth=auth)  # type: ignore
     return get_gh_handle
 
 def rm_path(path: Path) -> None:
@@ -404,10 +411,13 @@ def main() -> Optional[str]:
                      help='cache latest release tag fetch for this many '
                      'minutes, before rechecking for latest. '
                      'Default is %(default)d minutes')
-    opt.add_argument('--purge-days', default=30, type=int,
+    opt.add_argument('--purge-days', default=90, type=int,
                      help='cache release file lists for this number '
                      'of days after last version referencing it is removed. '
                      'Default is %(default)d days')
+    opt.add_argument('--github-access-token',
+                     help='Optional Github access token. Can specify to reduce '
+                     'rate limiting.')
     opt.add_argument('-V', action='store_true',
                      help=f'show {PROG} version')
     cmd = opt.add_subparsers(title='Commands', dest='cmdname')
