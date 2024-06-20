@@ -292,15 +292,13 @@ def update_version_symlinks(args: Namespace) -> None:
     for name, tgt in oldlinks.items():
         new_tgt = newlinks.get(name)
         if not new_tgt or new_tgt != tgt:
-            path = Path(base / name)
-            path.unlink()
+            Path(base / name).unlink()
 
     # Create all needed new links
     for name, tgt in newlinks.items():
         old_tgt = oldlinks.get(name)
         if not old_tgt or old_tgt != tgt:
-            path = Path(base / name)
-            path.symlink_to(tgt, target_is_directory=True)
+            Path(base / name).symlink_to(tgt, target_is_directory=True)
 
 def purge_unused_releases(args: Namespace) -> None:
     'Purge old releases that are no longer needed and have expired'
@@ -313,10 +311,11 @@ def purge_unused_releases(args: Namespace) -> None:
         if (release := get_json(version / args._data).get('release')):
             keep.add(release)
 
-    for release in releases - keep:
+    now_secs = time.time()
+    end_secs = args.purge_days * 86400
+    for release in (releases - keep):
         rdir = args._releases / release
-        stat = rdir.stat()
-        if time.time() > (stat.st_mtime + args.purge_days * 86400):
+        if (rdir.stat().st_mtime + end_secs) < now_secs:
             rdir.unlink()
 
 class COMMAND:
