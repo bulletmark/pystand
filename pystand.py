@@ -13,6 +13,7 @@ import platform
 import re
 import shlex
 import shutil
+import subprocess
 import sys
 import time
 import urllib.request
@@ -367,6 +368,25 @@ def remove(args: Namespace, version: str) -> None:
 
     shutil.rmtree(vdir)
 
+def strip(vdir: Path, distribution: str) -> None:
+    'Strip binaries from files in a version directory'
+    # Only run the strip command on Linux hosts and for Linux distributions
+    if platform.system() != 'Linux' or '-linux-' not in distribution:
+        return
+
+    for path in ('bin', 'lib'):
+        base = vdir / path
+        if not base.is_dir():
+            continue
+
+        for file in base.iterdir():
+            if not file.is_symlink() and file.is_file():
+                cmd = f'strip -p --strip-unneeded {file}'.split()
+                try:
+                    subprocess.run(cmd, stderr=subprocess.DEVNULL)
+                except Exception:
+                    pass
+
 def install(args: Namespace, vdir: Path, release: str, distribution: str,
             files: dict) -> Optional[str]:
     'Install a version'
@@ -392,6 +412,9 @@ def install(args: Namespace, vdir: Path, release: str, distribution: str,
         data = {'release': release, 'distribution': distribution}
         if (error := set_json(tmpdir_py / args._data, data)):
             error = f'Failed to write {version} data file: {error}'
+
+    if not args.do_not_strip:
+        strip(tmpdir_py, distribution)
 
     if not error:
         remove(args, version)
@@ -431,8 +454,10 @@ def main() -> Optional[str]:
                      'of days after last version referencing it is removed. '
                      'Default is %(default)d days')
     opt.add_argument('--github-access-token',
-                     help='Optional Github access token. Can specify to reduce '
+                     help='optional Github access token. Can specify to reduce '
                      'rate limiting.')
+    opt.add_argument('--do-not-strip',
+                     help='Do not strip unneeded symbols from binaries')
     opt.add_argument('-V', action='store_true',
                      help=f'show {PROG} version')
     cmd = opt.add_subparsers(title='Commands', dest='cmdname')
