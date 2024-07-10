@@ -426,7 +426,7 @@ def install(args: Namespace, vdir: Path, release: str, distribution: str,
 def main() -> Optional[str]:
     'Main code'
     distro_default = DISTRIBUTIONS.get((platform.system(), platform.machine()))
-    distro_help = distro_default if distro_default else '?unknown?'
+    distro_help = distro_default or '?unknown?'
 
     base_dir = Path('/opt' if is_admin() else
                     platformdirs.user_data_dir()) / PROG

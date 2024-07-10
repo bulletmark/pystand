@@ -83,12 +83,15 @@ $ pipx install --python $(pystand path -p 3.12) cowsay
 See detailed usage information in the [Usage](#usage) section that
 follows.
 
-Note that unlike nearly all similar tools such as [`pyenv`][pyenv],
-[`pdm python`][pdmpy], and [`hatch python`][hatchpy], `pystand` directly
-checks the [`python-build-standalone`][pbs] github site to fetch for new
-[releases][pbs-rel] but those other tools require a software update
-before they can see new releases. This means that Python updates are
-available more quickly from `pystand` than other tools.
+Note that similar tools such as [`pdm python`][pdmpy], [`hatch
+python`][hatchpy], and [`rye toolchain`][ryepy] also use
+[`python-build-standalone`][pbs] build releases. However, `pystand` is
+unique because it directly checks the [`python-build-standalone`][pbs]
+github site for new [releases][pbs-rel]. Those other tools
+require a software update before they can fetch and use new
+[`python-build-standalone`][pbs] releases. This means that new Python
+versions and updates are always available more quickly from `pystand`
+than those other tools.
 
 This utility has been developed and tested on Linux but should also work
 on macOS and Windows although has not been tried on those platforms. The
@@ -360,5 +363,6 @@ FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License at
 [pdmpy]: https://pdm-project.org/en/latest/usage/project/#install-python-interpreters-with-pdm
 [hatch]: https://hatch.pypa.io/
 [hatchpy]: https://hatch.pypa.io/latest/tutorials/python/manage/
+[ryepy]: https://rye.astral.sh/guide/toolchains/#fetching-toolchains
 
 <!-- vim: se ai syn=markdown: -->
