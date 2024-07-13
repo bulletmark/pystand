@@ -105,8 +105,8 @@ Type `pystand` or `pystand -h` to view the usage summary:
 ```
 usage: pystand [-h] [-D DISTRIBUTION] [-B BASE_DIR] [-C CACHE_MINUTES]
                   [--purge-days PURGE_DAYS]
-                  [--github-access-token GITHUB_ACCESS_TOKEN]
-                  [--do-not-strip DO_NOT_STRIP] [-V]
+                  [--github-access-token GITHUB_ACCESS_TOKEN] [--do-not-strip]
+                  [-V]
                   {install,update,remove,list,show,path} ...
 
 Command line tool to download, install, and update pre-built Python versions
@@ -134,8 +134,7 @@ options:
   --github-access-token GITHUB_ACCESS_TOKEN
                         optional Github access token. Can specify to reduce
                         rate limiting.
-  --do-not-strip DO_NOT_STRIP
-                        Do not strip unneeded symbols from binaries
+  --do-not-strip        Do not strip unneeded symbols from binaries
   -V                    show pystand version
 
 Commands:

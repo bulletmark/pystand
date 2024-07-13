@@ -368,7 +368,7 @@ def remove(args: Namespace, version: str) -> None:
 
     shutil.rmtree(vdir)
 
-def strip(vdir: Path, distribution: str) -> None:
+def strip_binaries(vdir: Path, distribution: str) -> None:
     'Strip binaries from files in a version directory'
     # Only run the strip command on Linux hosts and for Linux distributions
     if platform.system() != 'Linux' or '-linux-' not in distribution:
@@ -414,7 +414,7 @@ def install(args: Namespace, vdir: Path, release: str, distribution: str,
             error = f'Failed to write {version} data file: {error}'
 
     if not args.do_not_strip:
-        strip(tmpdir_py, distribution)
+        strip_binaries(tmpdir_py, distribution)
 
     if not error:
         remove(args, version)
@@ -456,7 +456,7 @@ def main() -> Optional[str]:
     opt.add_argument('--github-access-token',
                      help='optional Github access token. Can specify to reduce '
                      'rate limiting.')
-    opt.add_argument('--do-not-strip',
+    opt.add_argument('--do-not-strip', action='store_true',
                      help='Do not strip unneeded symbols from binaries')
     opt.add_argument('-V', action='store_true',
                      help=f'show {PROG} version')
