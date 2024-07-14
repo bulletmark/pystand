@@ -105,8 +105,8 @@ Type `pystand` or `pystand -h` to view the usage summary:
 ```
 usage: pystand [-h] [-D DISTRIBUTION] [-B BASE_DIR] [-C CACHE_MINUTES]
                   [--purge-days PURGE_DAYS]
-                  [--github-access-token GITHUB_ACCESS_TOKEN] [--do-not-strip]
-                  [-V]
+                  [--github-access-token GITHUB_ACCESS_TOKEN] [--no-strip]
+                  [--no-extra-strip] [-V]
                   {install,update,remove,list,show,path} ...
 
 Command line tool to download, install, and update pre-built Python versions
@@ -134,7 +134,8 @@ options:
   --github-access-token GITHUB_ACCESS_TOKEN
                         optional Github access token. Can specify to reduce
                         rate limiting.
-  --do-not-strip        Do not strip unneeded symbols from binaries
+  --no-strip            do not use or create stripped binaries
+  --no-extra-strip      do not restrip already stripped source binaries
   -V                    show pystand version
 
 Commands:
@@ -328,8 +329,9 @@ anything after on a line) are ignored. Type `pystand` to see all
 supported options.
 
 The global options: `--distribution`, `--base-dir`, `--cache-minutes`,
-`--purge-days`, `--github-access-token`, `--do-not-strip` are the only
-sensible candidates to consider setting as defaults.
+`--purge-days`, `--github-access-token`, `--no-strip`,
+`--no-extra-strip` are the only sensible candidates to consider setting
+as defaults.
 
 ## Command Line Tab Completion
 

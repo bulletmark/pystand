@@ -40,6 +40,8 @@ FIRST_RELEASE = '20210724'
 # Sample release tag for documentation/usage examples
 SAMPL_RELEASE = '20240415'
 
+STRIP_EXT = '_stripped'
+
 # The following regexp pattern is used to match the end of a release file name
 ENDPAT = r'-install_only[-\dT]*.tar.gz$'
 
@@ -234,14 +236,22 @@ def get_release_tag(args: Namespace) -> str:
     args._latest_release.write_text(tag + '\n')
     return tag
 
-def get_release_name(filename: str) -> Optional[str]:
-    'Search for and strip the release name from the file name'
-    if not (m := re.search(ENDPAT, filename)):
-        return None
+def merge(files: dict, name: str, url: str, stripped: bool) -> None:
+    'Merge a file into the files dict'
+    # We store: A string url when there is no stripped version; or a
+    # tuple of string urls, the first unstripped and the second
+    # stripped. It's a bit messy but we are keeping compatibility with
+    # earlier releases (and their cached release files) which did not
+    # have stripped versions.
+    impl, ver, distrib = name.split('-', maxsplit=2)
+    if impl not in files:
+        files[impl] = defaultdict(dict)
 
-    # Strip of end of file name and also strip any +8 digit embedded
-    # release date
-    return re.sub(r'\+\d{8}', '', filename[:m.start()])
+    if exist := files[impl].get(ver, {}).get(distrib, {}):
+        files[impl][ver][distrib] = (exist, url) \
+                if stripped else (url, exist[1])
+    else:
+        files[impl][ver][distrib] = ('', url) if stripped else url
 
 def get_release_files(args, tag, implementation: Optional[str] = None) -> dict:
     'Return the release files for the given tag'
@@ -260,17 +270,19 @@ def get_release_files(args, tag, implementation: Optional[str] = None) -> dict:
         except Exception:
             return {}
 
-        # Iterate over the release assets and store the files in a dict to
-        # return
-        for file in release.get_assets():
-            if not (name := get_release_name(file.name)):
-                continue
+        # Iterate over the release assets and store pertinent files in a
+        # dict to return.
+        for asset in release.get_assets():
+            name = asset.name
+            if is_stripped := (STRIP_EXT in name):
+                name = name.replace(STRIP_EXT, '')
 
-            impl, ver, rest = name.split('-', maxsplit=2)
-            if impl not in files:
-                files[impl] = defaultdict(dict)
+            if m := re.search(ENDPAT, name):
+                name = re.sub(r'\+\d{8}', '', name[:m.start()])
+                merge(files, name, asset.browser_download_url, is_stripped)
 
-            files[impl][ver][rest] = file.browser_download_url
+        if not files:
+            sys.exit(f'Failed to fetch any files for release {tag}')
 
         if error := set_json(jfile, files):
             sys.exit(f'Failed to write release {tag} file {jfile}: {error}')
@@ -368,33 +380,42 @@ def remove(args: Namespace, version: str) -> None:
 
     shutil.rmtree(vdir)
 
-def strip_binaries(vdir: Path, distribution: str) -> None:
+def strip_binaries(vdir: Path, distribution: str) -> bool:
     'Strip binaries from files in a version directory'
     # Only run the strip command on Linux hosts and for Linux distributions
-    if platform.system() != 'Linux' or '-linux-' not in distribution:
-        return
+    was_stripped = False
+    if platform.system() == 'Linux' and '-linux-' in distribution:
+        for path in ('bin', 'lib'):
+            base = vdir / path
+            if not base.is_dir():
+                continue
 
-    for path in ('bin', 'lib'):
-        base = vdir / path
-        if not base.is_dir():
-            continue
+            for file in base.iterdir():
+                if not file.is_symlink() and file.is_file():
+                    cmd = f'strip -p --strip-unneeded {file}'.split()
+                    try:
+                        subprocess.run(cmd, stderr=subprocess.DEVNULL)
+                    except Exception:
+                        pass
+                    else:
+                        was_stripped = True
 
-        for file in base.iterdir():
-            if not file.is_symlink() and file.is_file():
-                cmd = f'strip -p --strip-unneeded {file}'.split()
-                try:
-                    subprocess.run(cmd, stderr=subprocess.DEVNULL)
-                except Exception:
-                    pass
+    return was_stripped
 
 def install(args: Namespace, vdir: Path, release: str, distribution: str,
             files: dict) -> Optional[str]:
     'Install a version'
     version = vdir.name
 
-    if not (file := files[version].get(distribution)):
+    if not (fileurl := files[version].get(distribution)):
         return f'Arch "{distribution}" not found for release '\
                 f'{release} version {version}.'
+
+    if isinstance(fileurl, tuple):
+        stripped = not args.no_strip
+        fileurl = fileurl[stripped]
+    else:
+        stripped = False
 
     tmpdir = args._versions / f'.{version}-tmp'
     rm_path(tmpdir)
@@ -403,18 +424,31 @@ def install(args: Namespace, vdir: Path, release: str, distribution: str,
     error = None
 
     try:
-        urllib.request.urlretrieve(file, tmpdir / 'tmp.tar.gz')
+        urllib.request.urlretrieve(fileurl, tmpdir / 'tmp.tar.gz')
+    except Exception as e:
+        error = f'Failed to fetch "{fileurl}": {e}'
+
+    try:
         shutil.unpack_archive(tmpdir / 'tmp.tar.gz', tmpdir)
     except Exception as e:
-        error = f'Failed to fetch "{version}": {e}'
+        error = f'Failed to unpack "{fileurl}": {e}'
 
     if not error:
         data = {'release': release, 'distribution': distribution}
+
+        if args.no_strip:
+            data['stripped'] = 'forced off'
+        elif stripped and args.no_extra_strip:
+            data['stripped'] = 'at_source_only'
+        else:
+            if strip_binaries(tmpdir_py, distribution):
+                data['stripped'] = 'at_source_and_manually' \
+                        if stripped else 'manually'
+            else:
+                data['stripped'] = 'at_source' if stripped else 'n/a'
+
         if (error := set_json(tmpdir_py / args._data, data)):
             error = f'Failed to write {version} data file: {error}'
-
-    if not args.do_not_strip:
-        strip_binaries(tmpdir_py, distribution)
 
     if not error:
         remove(args, version)
@@ -456,8 +490,10 @@ def main() -> Optional[str]:
     opt.add_argument('--github-access-token',
                      help='optional Github access token. Can specify to reduce '
                      'rate limiting.')
-    opt.add_argument('--do-not-strip', action='store_true',
-                     help='Do not strip unneeded symbols from binaries')
+    opt.add_argument('--no-strip', action='store_true',
+                     help='do not use or create stripped binaries')
+    opt.add_argument('--no-extra-strip', action='store_true',
+                     help='do not restrip already stripped source binaries')
     opt.add_argument('-V', action='store_true',
                      help=f'show {PROG} version')
     cmd = opt.add_subparsers(title='Commands', dest='cmdname')
