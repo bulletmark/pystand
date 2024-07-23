@@ -309,13 +309,13 @@ def update_version_symlinks(args: Namespace) -> None:
     for name, tgt in oldlinks.items():
         new_tgt = newlinks.get(name)
         if not new_tgt or new_tgt != tgt:
-            Path(base / name).unlink()
+            (base / name).unlink()
 
     # Create all needed new links
     for name, tgt in newlinks.items():
         old_tgt = oldlinks.get(name)
         if not old_tgt or old_tgt != tgt:
-            Path(base / name).symlink_to(tgt, target_is_directory=True)
+            (base / name).symlink_to(tgt, target_is_directory=True)
 
 def purge_unused_releases(args: Namespace) -> None:
     'Purge old releases that are no longer needed and have expired'
