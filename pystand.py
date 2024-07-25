@@ -411,11 +411,14 @@ def install(args: Namespace, vdir: Path, release: str, distribution: str,
         return f'Arch "{distribution}" not found for release '\
                 f'{release} version {version}.'
 
-    if isinstance(fileurl, tuple):
-        stripped = not args.no_strip
-        fileurl = fileurl[stripped]
-    else:
+    if isinstance(fileurl, str):
         stripped = False
+    else:
+        stripped = not args.no_strip
+        if not (fileurl := fileurl[stripped]):
+            desc = 'stripped' if stripped else 'unstripped'
+            return f'Arch {desc} "{distribution}" not found for release '\
+                    f'{release} version {version}.'
 
     tmpdir = args._versions / f'.{version}-tmp'
     rm_path(tmpdir)
