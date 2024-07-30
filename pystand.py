@@ -21,7 +21,7 @@ from argparse import ArgumentParser, Namespace
 from collections import defaultdict
 from datetime import date
 from pathlib import Path
-from typing import Any, Iterable, Iterator, Optional
+from typing import Any, Iterable, Iterator
 
 import argcomplete
 import platformdirs
@@ -92,7 +92,7 @@ def get_json(file: Path) -> dict:
 
     return {}
 
-def set_json(file: Path, data: dict) -> Optional[str]:
+def set_json(file: Path, data: dict) -> str | None:
     'Set JSON data to given file'
     try:
         with file.open('w') as fp:
@@ -138,7 +138,7 @@ class VersionMatcher:
         self.seq = sorted(seq, key=parse_version, reverse=True)
 
     def match(self, version: str, *,
-              upconvert_minor: bool = False) -> Optional[str]:
+              upconvert_minor: bool = False) -> str | None:
         'Return full version string given a [possibly] part version prefix'
         if version in self.seq:
             return version
@@ -191,7 +191,7 @@ def get_version_names(args: Namespace) -> list[str]:
             if args.all else versions
 
 def check_release_tag(release: str, *,
-                      check_first: bool = True) -> Optional[str]:
+                      check_first: bool = True) -> str | None:
     'Check the specified release tag is valid'
     if not release.isdigit() or len(release) != len(FIRST_RELEASE):
         return 'Release must be a YYYYMMDD string.'
@@ -253,7 +253,7 @@ def merge(files: dict, name: str, url: str, stripped: bool) -> None:
     else:
         files[impl][ver][distrib] = ('', url) if stripped else url
 
-def get_release_files(args, tag, implementation: Optional[str] = None) -> dict:
+def get_release_files(args, tag, implementation: str | None = None) -> dict:
     'Return the release files for the given tag'
     # Look for tag data in our release cache
     jfile = args._releases / tag
@@ -403,7 +403,7 @@ def strip_binaries(vdir: Path, distribution: str) -> bool:
     return was_stripped
 
 def install(args: Namespace, vdir: Path, release: str, distribution: str,
-            files: dict) -> Optional[str]:
+            files: dict) -> str | None:
     'Install a version'
     version = vdir.name
 
@@ -460,7 +460,7 @@ def install(args: Namespace, vdir: Path, release: str, distribution: str,
     shutil.rmtree(tmpdir)
     return error
 
-def main() -> Optional[str]:
+def main() -> str | None:
     'Main code'
     distro_default = DISTRIBUTIONS.get((platform.system(), platform.machine()))
     distro_help = distro_default or '?unknown?'
@@ -583,7 +583,7 @@ class _install(COMMAND):
                             help='version to install. E.g. 3.12 or 3.12.3')
 
     @staticmethod
-    def run(args: Namespace) -> Optional[str]:
+    def run(args: Namespace) -> str | None:
         release = get_release_tag(args)
         files = get_release_files(args, release, 'cpython')
         if not files:
@@ -627,7 +627,7 @@ class _update(COMMAND):
                             '--all --skip)')
 
     @staticmethod
-    def run(args: Namespace) -> Optional[str]:
+    def run(args: Namespace) -> str | None:
         release_target = get_release_tag(args)
         files = get_release_files(args, release_target, 'cpython')
         if not files:
@@ -687,7 +687,7 @@ class _remove(COMMAND):
                             '--all --skip)')
 
     @staticmethod
-    def run(args: Namespace) -> Optional[str]:
+    def run(args: Namespace) -> str | None:
         release_del = args.release
         if release_del and \
                 (err := check_release_tag(release_del, check_first=False)):
@@ -716,7 +716,7 @@ class _list(COMMAND):
                             help='only list specified version, else all')
 
     @staticmethod
-    def run(args: Namespace) -> Optional[str]:
+    def run(args: Namespace) -> str | None:
         release_target = get_release_tag(args)
         files = get_release_files(args, release_target, 'cpython')
         if not files:
@@ -810,7 +810,7 @@ class _path(COMMAND):
         parser.add_argument('version', help='version to return path for')
 
     @staticmethod
-    def run(args: Namespace) -> Optional[str]:
+    def run(args: Namespace) -> str | None:
         matcher = VersionMatcher([f.name for f in iter_versions(args)])
         version = matcher.match(args.version) or args.version
         path = args._versions / version
