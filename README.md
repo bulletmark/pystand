@@ -275,7 +275,7 @@ from the AUR](https://aur.archlinux.org/packages/pystand) and skip this
 section.
 
 The easiest way to install [`pystand`][pystand] is to use [`pipx`][pipx]
-(or [`pipxu`][pipxu]).
+(or [`pipxu`][pipxu], or [`uv tool`][uvtool]).
 
 ```sh
 $ pipx install pystand
@@ -359,6 +359,7 @@ FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License at
 [pbs-rel]: https://github.com/indygreg/python-build-standalone/releases
 [pipx]: https://github.com/pypa/pipx
 [pipxu]: https://github.com/bulletmark/pipxu
+[uvtool]: https://docs.astral.sh/uv/guides/tools/#installing-tools
 [pyenv]: https://github.com/pyenv/pyenv
 [pdm]: https://pdm-project.org/
 [pdmpy]: https://pdm-project.org/en/latest/usage/project/#install-python-interpreters-with-pdm
