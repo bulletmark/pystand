@@ -762,7 +762,7 @@ class _show(COMMAND):
     'Show versions available from a release.'
     @staticmethod
     def init(parser: ArgumentParser) -> None:
-        parser.add_argument('-d', '--distributions', action='store_true',
+        parser.add_argument('-D', '--distribution', action='store_true',
                             help='also show all available distributions for '
                             'each version from the release')
         parser.add_argument('release', nargs='?',
@@ -789,7 +789,7 @@ class _show(COMMAND):
             for distribution in files[version]:
                 app = ' (installed)' \
                         if distribution == installed_distribution else ''
-                if args.distributions or app \
+                if args.distribution or app \
                         or distribution == args._distribution:
                     if distribution == args._distribution:
                         installable = True

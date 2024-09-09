@@ -239,18 +239,18 @@ options:
 ### Command `show`
 
 ```
-usage: pystand show [-h] [-d] [release]
+usage: pystand show [-h] [-D] [release]
 
 Show versions available from a release.
 
 positional arguments:
-  release              python-build-standalone YYYYMMDD release to show (e.g.
-                       20240415), default is latest release
+  release             python-build-standalone YYYYMMDD release to show (e.g.
+                      20240415), default is latest release
 
 options:
-  -h, --help           show this help message and exit
-  -d, --distributions  also show all available distributions for each version
-                       from the release
+  -h, --help          show this help message and exit
+  -D, --distribution  also show all available distributions for each version
+                      from the release
 ```
 
 ### Command `path`
