@@ -132,26 +132,38 @@ def rm_path(path: Path) -> None:
     elif path.exists():
         path.unlink()
 
+def is_release_version(version: str) -> bool:
+    'Check if a string is a formal Python release tag'
+    return version.replace('.', '').isdigit()
+
 class VersionMatcher:
     'Match a version string to a list of versions'
     def __init__(self, seq: Iterable[str]) -> None:
         self.seq = sorted(seq, key=parse_version, reverse=True)
 
-    def match(self, version: str, *,
-              upconvert_minor: bool = False) -> str | None:
+    def match(self, version: str, *, upgrade: bool = False) -> str | None:
         'Return full version string given a [possibly] part version prefix'
         if version in self.seq:
             return version
 
-        if upconvert_minor:
+        is_release = is_release_version(version)
+        major_only = '.' not in version
+
+        if major_only:
+            upgrade = True
+        elif upgrade:
             version = version.rsplit('.', 1)[0]
 
         if not version.endswith('.'):
             version += '.'
 
+        # Only allow upgrade of formal release to another formal
+        # release, or alpha/beta release to another alpha/beta release.
         for full_version in self.seq:
             if full_version.startswith(version):
-                return full_version
+                if not upgrade \
+                        or is_release_version(full_version) == is_release:
+                    return full_version
 
         return None
 
@@ -295,7 +307,7 @@ def update_version_symlinks(args: Namespace) -> None:
     if not base.exists():
         return
 
-    # Record of all the existing symlinks and version dirs
+    # Record all the existing symlinks and version dirs
     oldlinks = {}
     vers = []
     for path in base.iterdir():
@@ -303,19 +315,30 @@ def update_version_symlinks(args: Namespace) -> None:
             if path.is_symlink():
                 oldlinks[path.name] = os.readlink(str(path))
             else:
-                vers.append(path)
+                vers.append(path.name)
 
     # Create a map of all the new major version links
-    newlinks_all = defaultdict(list)
-    for path in vers:
-        namevers = path.name
+    newlinks_all = defaultdict(set)
+    pre_releases = set(v for v in vers if not is_release_version(v))
+    for namevers in vers:
         while '.' in namevers[:-1]:
             namevers_major = namevers.rsplit('.', maxsplit=1)[0]
-            newlinks_all[namevers_major].append(namevers)
+            newlinks_all[namevers_major].add(namevers)
+
+            if namevers in pre_releases:
+                pre_releases.add(namevers_major)
+
             namevers = namevers_major
 
-    newlinks = {k: sorted(v, key=parse_version)[-1] for k, v in
-                newlinks_all.items()}
+    # Find the latest version for each major version, but ensure we
+    # don't link a major release to pre-released version, if it also can
+    # point to released versions.
+    newlinks = {}
+    for ver, cands in newlinks_all.items():
+        if ver in pre_releases and (rels := (cands - pre_releases)):
+            cands = rels
+
+        newlinks[ver] = sorted(cands, key=parse_version)[-1]
 
     # Remove all old or invalid existing links
     for name, tgt in oldlinks.items():
@@ -642,7 +665,7 @@ class _update(COMMAND):
             if release == release_target:
                 continue
 
-            nextver = matcher.match(version, upconvert_minor=True)
+            nextver = matcher.match(version, upgrade=True)
 
             distribution = data.get('distribution')
             if not distribution or distribution not in files.get(nextver, {}):
@@ -735,7 +758,7 @@ class _list(COMMAND):
             upd = ''
             app = ''
             if release_target and release != release_target:
-                nextver = matcher.match(version, upconvert_minor=True)
+                nextver = matcher.match(version, upgrade=True)
                 new_vdir = args._versions / nextver
                 if nextver != version and new_vdir.exists():
                     if args.verbose:
