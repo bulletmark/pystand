@@ -141,8 +141,17 @@ class VersionMatcher:
     def __init__(self, seq: Iterable[str]) -> None:
         self.seq = sorted(seq, key=parse_version, reverse=True)
 
-    def match(self, version: str, *, upgrade: bool = False) -> str | None:
+    def match(self, version: str | None, *,
+              upgrade: bool = False) -> str | None:
         'Return full version string given a [possibly] part version prefix'
+
+        # If no version specified, return the latest release version
+        if not version:
+            for version in self.seq:
+                if is_release_version(version):
+                    return version
+            return None
+
         if version in self.seq:
             return version
 
@@ -830,7 +839,9 @@ class _path(COMMAND):
     def init(parser: ArgumentParser) -> None:
         parser.add_argument('-p', '--python-path', action='store_true',
                             help='return full path to python executable')
-        parser.add_argument('version', help='version to return path for')
+        parser.add_argument('version', nargs='?',
+                            help='version to return path for, or latest '
+                            'release version if not specified')
 
     @staticmethod
     def run(args: Namespace) -> str | None:

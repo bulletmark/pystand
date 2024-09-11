@@ -70,14 +70,17 @@ $ pystand list
 Here are some examples showing how to use an installed version ..
 
 ```sh
-# Use uv to create a virtual environment to be run with pystand installed python:
-$ uv venv -p $(pystand path 3.12) myenv
+# Use uv to create a virtual environment to be run with latest pystand
+# installed python:
+$ uv venv -p $(pystand path) myenv
 
-# Create a regular virtual environment to be run with pystand installed python:
-$ $(pystand path -p 3.12) -m venv myenv
+# Create a regular virtual environment to be run with latest pystand
+# installed python:
+$ $(pystand path -p) -m venv myenv
 
-# Use pipx to install a package to be run with pystand installed python:
-$ pipx install --python $(pystand path -p 3.12) cowsay
+# Use pipx to install a package to be run with pystand installed python
+# specific version:
+$ pipx install --python $(pystand path -p 3.11) cowsay
 ```
 
 See detailed usage information in the [Usage](#usage) section that
@@ -256,12 +259,13 @@ options:
 ### Command `path`
 
 ```
-usage: pystand path [-h] [-p] version
+usage: pystand path [-h] [-p] [version]
 
 Show path prefix to installed version base directory.
 
 positional arguments:
-  version            version to return path for
+  version            version to return path for, or latest release version if
+                     not specified
 
 options:
   -h, --help         show this help message and exit
