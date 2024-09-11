@@ -336,14 +336,14 @@ as defaults.
 ## Github API Rate Limiting
 
 This tool minimises and caches Github API responses from the
-[`pystand`][pystand] repository. However, if you install many different
-versions particularly across various releases, you may get rate limited
-by Github so the command will block and you will see "backoff" messages
-reported. You can create a Github access token to gain increased rate
-limits. Create a token in your Github account under `Settings ->
-Developer settings -> Personal access tokens`. Specify the token on the
-command line with `--github-access-token`, or set that as a [default
-option](#command-default-options).
+[`python-build-standalone`][pbs] repository. However, if you install
+many different versions particularly across various releases, you may
+get rate limited by Github so the command will block and you will see
+"backoff" messages reported. You can create a Github access token to
+gain increased rate limits. Create a token in your Github account under
+`Settings -> Developer settings -> Personal access tokens`. Specify the
+token on the command line with `--github-access-token`, or set that as a
+[default option](#command-default-options).
 
 ## Command Line Tab Completion
 
