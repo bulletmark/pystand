@@ -139,7 +139,7 @@ options:
                         rate limiting.
   --no-strip            do not use or create stripped binaries
   --no-extra-strip      do not restrip already stripped source binaries
-  -V                    show pystand version
+  -V, --version         show pystand version
 
 Commands:
   {install,update,remove,list,show,path}

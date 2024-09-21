@@ -529,7 +529,7 @@ def main() -> str | None:
                      help='do not use or create stripped binaries')
     opt.add_argument('--no-extra-strip', action='store_true',
                      help='do not restrip already stripped source binaries')
-    opt.add_argument('-V', action='store_true',
+    opt.add_argument('-V', '--version', action='store_true',
                      help=f'show {PROG} version')
     cmd = opt.add_subparsers(title='Commands', dest='cmdname')
 
@@ -569,11 +569,11 @@ def main() -> str | None:
 
     args = opt.parse_args(shlex.split(cnflines) + sys.argv[1:])
 
-    if args.V:
+    if args.version:
         print(get_version())
 
     if 'func' not in args:
-        if not args.V:
+        if not args.version:
             opt.print_help()
         return None
 
