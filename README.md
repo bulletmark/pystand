@@ -139,7 +139,7 @@ options:
                         rate limiting.
   --no-strip            do not use or create stripped binaries
   --no-extra-strip      do not restrip already stripped source binaries
-  -V, --version         show pystand version
+  -V, --version         just show pystand version
 
 Commands:
   {install,update,remove,list,show,path}
@@ -264,8 +264,8 @@ usage: pystand path [-h] [-p] [version]
 Show path prefix to installed version base directory.
 
 positional arguments:
-  version            version to return path for, or latest release version if
-                     not specified
+  version            version to return path for, or latest installed version
+                     if not specified
 
 options:
   -h, --help         show this help message and exit

@@ -530,7 +530,7 @@ def main() -> str | None:
     opt.add_argument('--no-extra-strip', action='store_true',
                      help='do not restrip already stripped source binaries')
     opt.add_argument('-V', '--version', action='store_true',
-                     help=f'show {PROG} version')
+                     help=f'just show {PROG} version')
     cmd = opt.add_subparsers(title='Commands', dest='cmdname')
 
     # Add each command ..
@@ -569,12 +569,12 @@ def main() -> str | None:
 
     args = opt.parse_args(shlex.split(cnflines) + sys.argv[1:])
 
-    if args.version:
-        print(get_version())
-
     if 'func' not in args:
-        if not args.version:
-            opt.print_help()
+        if args.version:
+            print(get_version())
+            return None
+
+        opt.print_help()
         return None
 
     distribution = args.distribution or distro_default
@@ -841,12 +841,14 @@ class _path(COMMAND):
                             help='return full path to python executable')
         parser.add_argument('version', nargs='?',
                             help='version to return path for, or latest '
-                            'release version if not specified')
+                            'installed version if not specified')
 
     @staticmethod
     def run(args: Namespace) -> str | None:
         matcher = VersionMatcher([f.name for f in iter_versions(args)])
         version = matcher.match(args.version) or args.version
+        if not version:
+            return f'No Python version installed.'
         path = args._versions / version
         if not path.is_dir():
             return f'Version "{version}" is not installed.'
