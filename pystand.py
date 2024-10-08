@@ -167,11 +167,11 @@ class VersionMatcher:
             version += '.'
 
         # Only allow upgrade of formal release to another formal
-        # release, or alpha/beta release to another alpha/beta release.
+        # release.
         for full_version in self.seq:
             if full_version.startswith(version):
-                if not upgrade \
-                        or is_release_version(full_version) == is_release:
+                if not upgrade or not is_release \
+                        or is_release_version(full_version):
                     return full_version
 
         return None
@@ -670,11 +670,11 @@ class _update(COMMAND):
             if not (data := get_json(args._versions / version / args._data)):
                 continue
 
-            release = data.get('release')
-            if release == release_target:
+            if (release := data.get('release')) == release_target:
                 continue
 
-            nextver = matcher.match(version, upgrade=True)
+            if not (nextver := matcher.match(version, upgrade=True)):
+                continue
 
             distribution = data.get('distribution')
             if not distribution or distribution not in files.get(nextver, {}):
@@ -768,23 +768,31 @@ class _list(COMMAND):
             app = ''
             if release_target and release != release_target:
                 nextver = matcher.match(version, upgrade=True)
-                new_vdir = args._versions / nextver
-                if nextver != version and new_vdir.exists():
+                if not nextver:
                     if args.verbose:
-                        nrelease = get_json(
-                                new_vdir / args._data).get('release', '?')
-                        app = f' not eligible for '\
-                                f'update because {fmt(nextver, nrelease)} '\
-                                'is already installed.'
+                        app = ' not eligible for update because '\
+                                f'release {release_target} does not provide '\
+                                'this version.'
                 else:
-                    # May not be updatable if newer release does not support
-                    # this same distribution anymore
-                    if nextver and distribution in files.get(nextver, {}):
-                        upd = f' updatable to {fmt(nextver, release_target)}'
-                    elif args.verbose:
-                        app = f' not eligible for update because '\
-                                f'{fmt(nextver, release_target)} does '\
-                                f'not provide distribution="{distribution}".'
+                    new_vdir = args._versions / nextver
+                    if nextver != version and new_vdir.exists():
+                        if args.verbose:
+                            nrelease = get_json(
+                                    new_vdir / args._data).get('release', '?')
+                            app = f' not eligible for '\
+                                    f'update because {fmt(nextver, nrelease)} '\
+                                    'is already installed.'
+                    else:
+                        # May not be updatable if newer release does not support
+                        # this same distribution anymore
+                        if nextver and distribution in files.get(nextver, {}):
+                            upd = ' updatable to '\
+                                    f'{fmt(nextver, release_target)}'
+                        elif args.verbose:
+                            app = ' not eligible for update because '\
+                                    f'{fmt(nextver, release_target)} does '\
+                                    'not provide '\
+                                    f'distribution="{distribution}".'
 
             print(f'{fmt(version, release)}{upd} '
                     f'distribution="{distribution}"{app}')
@@ -848,7 +856,8 @@ class _path(COMMAND):
         matcher = VersionMatcher([f.name for f in iter_versions(args)])
         version = matcher.match(args.version) or args.version
         if not version:
-            return f'No Python version installed.'
+            return 'No Python version installed.'
+
         path = args._versions / version
         if not path.is_dir():
             return f'Version "{version}" is not installed.'
