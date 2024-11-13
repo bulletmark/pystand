@@ -264,17 +264,17 @@ options:
 ### Command `path`
 
 ```
-usage: pystand path [-h] [-p] [version]
+usage: pystand path [-h] [-p] [-c | version]
 
 Show path prefix to installed version base directory.
 
 positional arguments:
-  version            version to return path for, or latest installed version
-                     if not specified
+  version             print resolved path for specified version
 
 options:
-  -h, --help         show this help message and exit
-  -p, --python-path  return full path to python executable
+  -h, --help          show this help message and exit
+  -p, --python-path   show full path to python executable
+  -c, --cache-prefix  print path to cache dir
 ```
 
 ## Installation and Upgrade

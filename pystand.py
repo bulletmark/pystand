@@ -871,15 +871,29 @@ class _path(COMMAND):
     @staticmethod
     def init(parser: ArgumentParser) -> None:
         parser.add_argument('-p', '--python-path', action='store_true',
-                            help='return full path to python executable')
-        parser.add_argument('version', nargs='?',
-                            help='version to return path for, or latest '
-                            'installed version if not specified')
+                            help='show full path to python executable')
+        group = parser.add_mutually_exclusive_group()
+        group.add_argument('-c', '--cache-prefix', action='store_true',
+                           help='print path to cache dir')
+        group.add_argument('version', nargs='?',
+                           help='print resolved path for specified version')
 
     @staticmethod
     def run(args: Namespace) -> str | None:
+        if args.cache_prefix:
+            if args.python_path:
+                args.parser.error('Can not specify --python-path.')
+            print(args._downloads.parent)
+            return
+
+        if not args.version:
+            if args.python_path:
+                args.parser.error('Can not specify --python-path.')
+            print(args._versions)
+            return
+
         matcher = VersionMatcher([f.name for f in iter_versions(args)])
-        version = matcher.match(args.version) or args.version
+        version = matcher.match(args.version)
         if not version:
             return 'No Python version installed.'
 
