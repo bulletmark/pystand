@@ -1,6 +1,3 @@
-NAME = $(shell basename $(CURDIR))
-PYNAME = $(subst -,_,$(NAME))
-
 check:
 	ruff check *.py
 	flake8 *.py
@@ -19,4 +16,4 @@ doc:
 	update-readme-usage
 
 clean:
-	@rm -vrf *.egg-info .venv/ build/ dist/ __pycache__
+	@rm -vrf *.egg-info build/ dist/ __pycache__

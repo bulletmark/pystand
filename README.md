@@ -17,11 +17,15 @@ provided:
 |`path`   |Show path prefix to installed version base directory                  |
 
 By default, Python versions are sourced from the latest
-`python-build-standalone` [release][pbs-rel] available (e.g. "`20240415`") but you can
-optionally specify any older release. The required
+`python-build-standalone` [release][pbs-rel] available (e.g.
+"`20240415`") but you can optionally specify any older release. The
+required
 [distribution](https://gregoryszorc.com/docs/python-build-standalone/main/running.html)
-for your machine architecture is normally auto-detected but can be
-overridden if required.
+for your machine architecture is normally auto-detected. By default, the
+_`install_only_stripped`_ build of the distribution is installed but you
+can choose to [install any other
+build/distribution](#installing-other-builds/distributions) instead, or
+in parallel.
 
 Some simple usage examples are:
 
@@ -50,21 +54,21 @@ $ pystand install 3.10
 Version 3.10.14 @ 20240415 installed.
 
 $ pystand list
-3.10.14 @ 20240415 distribution="x86_64-unknown-linux-gnu"
-3.12.3 @ 20240415 distribution="x86_64-unknown-linux-gnu"
+3.10.14 @ 20240415 distribution="x86_64-unknown-linux-gnu-install_only_stripped"
+3.12.3 @ 20240415 distribution="x86_64-unknown-linux-gnu-install_only_stripped"
 
 $ pystand show
-3.8.19 @ 20240415 distribution="x86_64-unknown-linux-gnu"
-3.9.19 @ 20240415 distribution="x86_64-unknown-linux-gnu"
-3.10.14 @ 20240415 distribution="x86_64-unknown-linux-gnu" (installed)
-3.11.9 @ 20240415 distribution="x86_64-unknown-linux-gnu"
-3.12.3 @ 20240415 distribution="x86_64-unknown-linux-gnu" (installed)
+3.8.19 @ 20240415 distribution="x86_64-unknown-linux-gnu-install_only_stripped"
+3.9.19 @ 20240415 distribution="x86_64-unknown-linux-gnu-install_only_stripped"
+3.10.14 @ 20240415 distribution="x86_64-unknown-linux-gnu-install_only_stripped" (installed)
+3.11.9 @ 20240415 distribution="x86_64-unknown-linux-gnu-install_only_stripped"
+3.12.3 @ 20240415 distribution="x86_64-unknown-linux-gnu-install_only_stripped" (installed)
 
 $ pystand remove 3.10
 Version 3.10.14 @ 20240415 removed.
 
 $ pystand list
-3.12.3 @ 20240415 distribution="x86_64-unknown-linux-gnu"
+3.12.3 @ 20240415 distribution="x86_64-unknown-linux-gnu-install_only_stripped"
 ```
 
 Here are some examples showing how to use an installed version ..
@@ -106,10 +110,10 @@ https://github.com/bulletmark/pystand.
 Type `pystand` or `pystand -h` to view the usage summary:
 
 ```
-usage: pystand [-h] [-D DISTRIBUTION] [-B BASE_DIR] [-C CACHE_MINUTES]
-                  [--purge-days PURGE_DAYS]
+usage: pystand [-h] [-D DISTRIBUTION] [-P PREFIX_DIR] [-C CACHE_DIR]
+                  [-M CACHE_MINUTES] [--purge-days PURGE_DAYS]
                   [--github-access-token GITHUB_ACCESS_TOKEN] [--no-strip]
-                  [--no-extra-strip] [-V]
+                  [-V]
                   {install,update,remove,list,show,path} ...
 
 Command line tool to download, install, and update pre-built Python versions
@@ -119,26 +123,27 @@ https://github.com/indygreg/python-build-standalone.
 options:
   -h, --help            show this help message and exit
   -D DISTRIBUTION, --distribution DISTRIBUTION
-                        python-build-standalone "*-install_only" distribution,
-                        e.g. "x86_64-unknown-linux-gnu". Default is auto-
-                        detected (detected as "x86_64-unknown-linux-gnu" for
-                        this current host).
-  -B BASE_DIR, --base-dir BASE_DIR
-                        specify pystand base dir for storing versions and
-                        metadata. Default is "$HOME/.local/share/pystand"
-  -C CACHE_MINUTES, --cache-minutes CACHE_MINUTES
+                        python-build-standalone distribution. Default is auto-
+                        detected (detected as "x86_64-unknown-linux-gnu-
+                        install_only_stripped" for this current host).
+  -P PREFIX_DIR, --prefix-dir PREFIX_DIR
+                        specify prefix dir for storing versions. Default is
+                        "$HOME/.local/share/pystand"
+  -C CACHE_DIR, --cache-dir CACHE_DIR
+                        specify cache dir for downloads. Default is
+                        "$HOME/.cache/pystand"
+  -M CACHE_MINUTES, --cache-minutes CACHE_MINUTES
                         cache latest YYYYMMDD release tag fetch for this many
                         minutes, before rechecking for latest. Default is 60
                         minutes
   --purge-days PURGE_DAYS
-                        cache YYYYMMDD release file lists for this number of
-                        days after last version referencing it is removed.
-                        Default is 90 days
+                        cache YYYYMMDD release file lists and downloads for
+                        this number of days after last version referencing
+                        that release is removed. Default is 90 days
   --github-access-token GITHUB_ACCESS_TOKEN
                         optional Github access token. Can specify to reduce
                         rate limiting.
-  --no-strip            do not use or create stripped binaries
-  --no-extra-strip      do not restrip already stripped source binaries
+  --no-strip            do strip downloaded binaries
   -V, --version         just show pystand version
 
 Commands:
@@ -242,18 +247,18 @@ options:
 ### Command `show`
 
 ```
-usage: pystand show [-h] [-D] [release]
+usage: pystand show [-h] [-a] [release]
 
 Show versions available from a release.
 
 positional arguments:
-  release             python-build-standalone YYYYMMDD release to show (e.g.
-                      20240415), default is latest release
+  release     python-build-standalone YYYYMMDD release to show (e.g.
+              20240415), default is latest release
 
 options:
-  -h, --help          show this help message and exit
-  -D, --distribution  also show all available distributions for each version
-                      from the release
+  -h, --help  show this help message and exit
+  -a, --all   also show all available distributions for each version from the
+              release
 ```
 
 ### Command `path`
@@ -297,6 +302,36 @@ To uninstall:
 $ pipx uninstall pystand
 ```
 
+## Installing Other Builds/Distributions
+
+The _`install_only_stripped`_ build of each distribution is installed by
+default. See description of distributions/builds
+[here](https://gregoryszorc.com/docs/python-build-standalone/main/running.html#obtaining-distributions).
+However, you can choose to install other distributions/builds. E.g. If
+we use a standard modern Linux x86_64 machine as an example, the default
+distribution is _`x86_64-unknown-linux-gnu-install_only_stripped`_ and
+the versions for these are installed by default at
+`~/.local/share/pystand/<version>`.
+
+However, let's say you want to experiment with the new free-threaded
+3.13 build. You can install this to a different directory, e.g.
+
+```sh
+$ mkdir ./3.13-freethreaded
+$ cd ./3.13-freethreaded
+
+$ pystand -P. -D x86_64-unknown-linux-gnu-freethreaded+lto-full install 3.13
+$ ./3.13/bin/python -V
+Python 3.13.0
+
+$ pystand -P . list
+3.13.0 @ 20241016 distribution="x86_64_v4-unknown-linux-gnu-freethreaded+lto-full"
+```
+
+Note you can set a different default distribution by
+specifying `--distribution` as a [default
+option](#command-default-options).
+
 ## Extrapolation of Python Versions
 
 `pystand` extrapolates any version text you specify on the command line
@@ -332,9 +367,9 @@ options will be concatenated and automatically prepended to your
 anything after on a line) are ignored. Type `pystand` to see all
 supported options.
 
-The global options: `--distribution`, `--base-dir`, `--cache-minutes`,
-`--purge-days`, `--github-access-token`, `--no-strip`,
-`--no-extra-strip` are the only sensible candidates to consider setting
+The global options: `--distribution`, `--prefix-dir`, `--cache-dir`,
+`--cache-minutes`, `--purge-days`, `--github-access-token`,
+`--no-strip`, are the only sensible candidates to consider setting
 as defaults.
 
 ## Github API Rate Limiting

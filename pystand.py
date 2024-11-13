@@ -15,7 +15,9 @@ import shlex
 import shutil
 import subprocess
 import sys
+import tarfile
 import time
+import urllib.parse
 import urllib.request
 from argparse import ArgumentParser, Namespace
 from collections import defaultdict
@@ -25,6 +27,7 @@ from typing import Any, Iterable, Iterator
 
 import argcomplete
 import platformdirs
+import zstandard
 from packaging.version import parse as parse_version
 
 REPO_OWNER = 'indygreg'
@@ -33,31 +36,22 @@ GITHUB_REPO = f'{REPO_OWNER}/{REPO}'
 LATEST_RELEASE_URL = f'https://raw.githubusercontent.com/{GITHUB_REPO}'\
         '/latest-release/latest-release.json'
 
-# The following release is the first one that supports "install_only"
-# builds so this tool does not support any releases before this.
-FIRST_RELEASE = '20210724'
-
 # Sample release tag for documentation/usage examples
 SAMPL_RELEASE = '20240415'
-
-STRIP_EXT = '_stripped'
-
-# The following regexp pattern is used to match the end of a release file name
-ENDPAT = r'-install_only[-\dT]*.tar.gz$'
 
 PROG = Path(__file__).stem
 CNFFILE = platformdirs.user_config_path(f'{PROG}-flags.conf')
 
 # Default distributions for various platforms
 DISTRIBUTIONS = {
-    ('Linux', 'x86_64'): 'x86_64-unknown-linux-gnu',
-    ('Linux', 'aarch64'): 'aarch64-unknown-linux-gnu',
-    ('Linux', 'armv7l'): 'armv7-unknown-linux-gnueabihf',
-    ('Linux', 'armv8l'): 'armv7-unknown-linux-gnueabihf',
-    ('Darwin', 'x86_64'): 'x86_64-apple-darwin',
-    ('Darwin', 'aarch64'): 'aarch64-apple-darwin',
-    ('Windows', 'x86_64'): 'x86_64-pc-windows-msvc',
-    ('Windows', 'i686'): 'i686-pc-windows-msvc',
+    ('Linux', 'x86_64'): 'x86_64-unknown-linux-gnu-install_only_stripped',
+    ('Linux', 'aarch64'): 'aarch64-unknown-linux-gnu-install_only_stripped',
+    ('Linux', 'armv7l'): 'armv7-unknown-linux-gnueabihf-install_only_stripped',
+    ('Linux', 'armv8l'): 'armv7-unknown-linux-gnueabihf-install_only_stripped',
+    ('Darwin', 'x86_64'): 'x86_64-apple-darwin-install_only_stripped',
+    ('Darwin', 'aarch64'): 'aarch64-apple-darwin-install_only_stripped',
+    ('Windows', 'x86_64'): 'x86_64-pc-windows-msvc-install_only_stripped',
+    ('Windows', 'i686'): 'i686-pc-windows-msvc-install_only_stripped',
 }
 
 def is_admin() -> bool:
@@ -131,6 +125,51 @@ def rm_path(path: Path) -> None:
         shutil.rmtree(path)
     elif path.exists():
         path.unlink()
+
+def unpack_zst(filename, extract_dir):
+    with open(filename, 'rb') as compressed:
+        dctx = zstandard.ZstdDecompressor()
+        with dctx.stream_reader(compressed) as reader:
+            with tarfile.open(fileobj=reader, mode='r|') as tar:
+                tar.extractall(path=extract_dir)
+
+def fetch(args: Namespace, release: str, url: str, tdir: Path) -> str | None:
+    'Fetch and unpack a release file'
+    error = None
+    tmpdir = tdir.with_name(f'{tdir.name}-tmp')
+    rm_path(tmpdir)
+    tmpdir.mkdir(parents=True)
+
+    filename_q = Path(urllib.parse.urlparse(url).path).name
+    filename = urllib.parse.unquote(filename_q)
+    cache_file = args._downloads / release / filename
+    cache_file.parent.mkdir(parents=True, exist_ok=True)
+
+    if not cache_file.exists():
+        try:
+            urllib.request.urlretrieve(url, cache_file)
+        except Exception as e:
+            error = f'Failed to fetch "{url}": {e}'
+
+    if error:
+        rm_path(cache_file)
+    else:
+        if filename.endswith('.zst'):
+            shutil.register_unpack_format('zst', ['.zst'], unpack_zst)
+
+        try:
+            shutil.unpack_archive(cache_file, tmpdir)
+        except Exception as e:
+            error = f'Failed to unpack "{url}": {e}'
+        else:
+            pdir = tmpdir / 'python' / 'install'
+            if not pdir.exists():
+                pdir = pdir.parent
+
+            pdir.replace(tdir)
+
+    rm_path(tmpdir)
+    return error
 
 def is_release_version(version: str) -> bool:
     'Check if a string is a formal Python release tag'
@@ -211,10 +250,9 @@ def get_version_names(args: Namespace) -> list[str]:
     return sorted(all_names - given, key=parse_version) \
             if args.all else versions
 
-def check_release_tag(release: str, *,
-                      check_first: bool = True) -> str | None:
+def check_release_tag(release: str) -> str | None:
     'Check the specified release tag is valid'
-    if not release.isdigit() or len(release) != len(FIRST_RELEASE):
+    if not release.isdigit() or len(release) != len(SAMPL_RELEASE):
         return 'Release must be a YYYYMMDD string.'
 
     try:
@@ -222,9 +260,6 @@ def check_release_tag(release: str, *,
     except Exception:
         return 'Release must be a YYYYMMDD date string.'
 
-    if check_first and release < FIRST_RELEASE:
-        return f'Releases before "{FIRST_RELEASE}" do not include '\
-                '"*-install_only" builds so are not supported.'
     return None
 
 def get_release_tag(args: Namespace) -> str:
@@ -257,22 +292,32 @@ def get_release_tag(args: Namespace) -> str:
     args._latest_release.write_text(tag + '\n')
     return tag
 
-def merge(files: dict, name: str, url: str, stripped: bool) -> None:
-    'Merge a file into the files dict'
-    # We store: A string url when there is no stripped version; or a
-    # tuple of string urls, the first unstripped and the second
-    # stripped. It's a bit messy but we are keeping compatibility with
-    # earlier releases (and their cached release files) which did not
-    # have stripped versions.
-    impl, ver, distrib = name.split('-', maxsplit=2)
-    if impl not in files:
-        files[impl] = defaultdict(dict)
-
-    if exist := files[impl].get(ver, {}).get(distrib, {}):
-        files[impl][ver][distrib] = (exist, url) \
-                if stripped else (url, exist[1])
+def add_file(files: dict, tag: str, name: str, url: str) -> None:
+    'Extract the implementation, version, and architecture from a filename'
+    if name.endswith('.tar.zst'):
+        name = name[:-8]
+    elif name.endswith('.tar.gz'):
+        name = name[:-7]
     else:
-        files[impl][ver][distrib] = ('', url) if stripped else url
+        return
+
+    impl, ver, arch = name.split('-', 2)
+
+    # Modern releases have a '+' in the name to separate the version
+    if '+' in ver:
+        ver, filetag = ver.split('+')
+        if filetag != tag:
+            return
+
+    if impl not in files:
+        files[impl] = {}
+
+    vers = files[impl]
+
+    if ver not in vers:
+        vers[ver] = {}
+
+    vers[ver][arch] = url
 
 def get_release_files(args, tag, implementation: str | None = None) -> dict:
     'Return the release files for the given tag'
@@ -294,13 +339,7 @@ def get_release_files(args, tag, implementation: str | None = None) -> dict:
         # Iterate over the release assets and store pertinent files in a
         # dict to return.
         for asset in release.get_assets():
-            name = asset.name
-            if is_stripped := (STRIP_EXT in name):
-                name = name.replace(STRIP_EXT, '')
-
-            if m := re.search(ENDPAT, name):
-                name = re.sub(r'\+\d{8}', '', name[:m.start()])
-                merge(files, name, asset.browser_download_url, is_stripped)
+            add_file(files, tag, asset.name, asset.browser_download_url)
 
         if not files:
             sys.exit(f'Failed to fetch any files for release {tag}')
@@ -374,10 +413,17 @@ def purge_unused_releases(args: Namespace) -> None:
 
     now_secs = time.time()
     end_secs = args.purge_days * 86400
-    for release in (releases - keep):
+    releases -= keep
+    for release in releases:
         rdir = args._releases / release
         if (rdir.stat().st_mtime + end_secs) < now_secs:
             rdir.unlink()
+        else:
+            keep.add(release)
+
+    downloads = set(f.name for f in args._downloads.iterdir())
+    for release in (downloads - keep):
+        rm_path(args._downloads / release)
 
 class COMMAND:
     'Base class for all commands'
@@ -439,57 +485,29 @@ def install(args: Namespace, vdir: Path, release: str, distribution: str,
     'Install a version'
     version = vdir.name
 
-    if not (fileurl := files[version].get(distribution)):
+    if not (url := files[version].get(distribution)):
         return f'Arch "{distribution}" not found for release '\
                 f'{release} version {version}.'
 
-    if isinstance(fileurl, str):
-        stripped = False
-    else:
-        stripped = not args.no_strip
-        if not (fileurl := fileurl[stripped]):
-            desc = 'stripped' if stripped else 'unstripped'
-            return f'Arch {desc} "{distribution}" not found for release '\
-                    f'{release} version {version}.'
-
     tmpdir = args._versions / f'.{version}-tmp'
     rm_path(tmpdir)
-    tmpdir.mkdir()
-    tmpdir_py = tmpdir / 'python'
-    error = None
+    tmpdir.mkdir(parents=True)
 
-    try:
-        urllib.request.urlretrieve(fileurl, tmpdir / 'tmp.tar.gz')
-    except Exception as e:
-        error = f'Failed to fetch "{fileurl}": {e}'
-
-    try:
-        shutil.unpack_archive(tmpdir / 'tmp.tar.gz', tmpdir)
-    except Exception as e:
-        error = f'Failed to unpack "{fileurl}": {e}'
-
-    if not error:
+    if not (error := fetch(args, release, url, tmpdir)):
         data = {'release': release, 'distribution': distribution}
 
-        if args.no_strip:
-            data['stripped'] = 'forced off'
-        elif stripped and args.no_extra_strip:
-            data['stripped'] = 'at_source_only'
-        else:
-            if strip_binaries(tmpdir_py, distribution):
-                data['stripped'] = 'at_source_and_manually' \
-                        if stripped else 'manually'
-            else:
-                data['stripped'] = 'at_source' if stripped else 'n/a'
+        if not args.no_strip and strip_binaries(tmpdir, distribution):
+            data['stripped'] = 'true'
 
-        if (error := set_json(tmpdir_py / args._data, data)):
+        if (error := set_json(tmpdir / args._data, data)):
             error = f'Failed to write {version} data file: {error}'
 
-    if not error:
+    if error:
+        shutil.rmtree(tmpdir)
+    else:
         remove(args, version)
-        tmpdir_py.replace(vdir)
+        tmpdir.replace(vdir)
 
-    shutil.rmtree(tmpdir)
     return error
 
 def main() -> str | None:
@@ -497,8 +515,9 @@ def main() -> str | None:
     distro_default = DISTRIBUTIONS.get((platform.system(), platform.machine()))
     distro_help = distro_default or '?unknown?'
 
-    base_dir = Path('/opt' if is_admin() else
-                    platformdirs.user_data_dir()) / PROG
+    p = '/opt' if is_admin() else platformdirs.user_data_dir()
+    prefix_dir = str(Path(p, PROG))
+    cache_dir = platformdirs.user_cache_path() / PROG
 
     # Parse arguments
     opt = ArgumentParser(description=__doc__,
@@ -507,28 +526,28 @@ def main() -> str | None:
 
     # Set up main/global arguments
     opt.add_argument('-D', '--distribution',
-                     help=f'{REPO} "*-install_only" '
-                     'distribution, e.g. "x86_64-unknown-linux-gnu". '
+                     help=f'{REPO} distribution. '
                      f'Default is auto-detected (detected as "{distro_help}" '
                      'for this current host).')
-    opt.add_argument('-B', '--base-dir', default=str(base_dir),
-                     help=f'specify {PROG} base dir for storing '
-                     'versions and metadata. Default is "%(default)s"')
-    opt.add_argument('-C', '--cache-minutes', default=60, type=float,
+    opt.add_argument('-P', '--prefix-dir', default=prefix_dir,
+                     help='specify prefix dir for storing '
+                     'versions. Default is "%(default)s"')
+    opt.add_argument('-C', '--cache-dir', default=str(cache_dir),
+                     help='specify cache dir for downloads. '
+                     'Default is "%(default)s"')
+    opt.add_argument('-M', '--cache-minutes', default=60, type=float,
                      help='cache latest YYYYMMDD release tag fetch for this '
                      'many minutes, before rechecking for latest. '
                      'Default is %(default)d minutes')
     opt.add_argument('--purge-days', default=90, type=int,
-                     help='cache YYYYMMDD release file lists for this number '
-                     'of days after last version referencing it is removed. '
-                     'Default is %(default)d days')
+                     help='cache YYYYMMDD release file lists and downloads for '
+                     'this number of days after last version referencing that '
+                     'release is removed. Default is %(default)d days')
     opt.add_argument('--github-access-token',
                      help='optional Github access token. Can specify to reduce '
                      'rate limiting.')
     opt.add_argument('--no-strip', action='store_true',
-                     help='do not use or create stripped binaries')
-    opt.add_argument('--no-extra-strip', action='store_true',
-                     help='do not restrip already stripped source binaries')
+                     help='do strip downloaded binaries')
     opt.add_argument('-V', '--version', action='store_true',
                      help=f'just show {PROG} version')
     cmd = opt.add_subparsers(title='Commands', dest='cmdname')
@@ -583,20 +602,24 @@ def main() -> str | None:
                 'using -D/--distribution option.')
 
     # Keep some useful info in the namespace passed to the command
-    base_dir = Path(args.base_dir).expanduser()
+    prefix_dir = Path(args.prefix_dir).expanduser()
+    cache_dir = Path(args.cache_dir).expanduser()
 
     args._distribution = distribution
     args._data = f'{PROG}.json'
-    args._latest_release = base_dir / 'latest_release'
-    args._latest_release.parent.mkdir(parents=True, exist_ok=True)
-    args._versions = base_dir / 'versions'
+
+    args._versions = prefix_dir
     args._versions.mkdir(parents=True, exist_ok=True)
-    args._releases = base_dir / 'releases'
+
+    args._downloads = cache_dir / 'downloads'
+    args._downloads.mkdir(parents=True, exist_ok=True)
+    args._releases = cache_dir / 'releases'
     args._releases.mkdir(parents=True, exist_ok=True)
+    args._latest_release = cache_dir / 'latest_release'
 
     result = args.func(args)
-    update_version_symlinks(args)
     purge_unused_releases(args)
+    update_version_symlinks(args)
     return result
 
 @COMMAND.add
@@ -722,7 +745,7 @@ class _remove(COMMAND):
     def run(args: Namespace) -> str | None:
         release_del = args.release
         if release_del and \
-                (err := check_release_tag(release_del, check_first=False)):
+                (err := check_release_tag(release_del)):
             return err
 
         for version in get_version_names(args):
@@ -802,7 +825,7 @@ class _show(COMMAND):
     'Show versions available from a release.'
     @staticmethod
     def init(parser: ArgumentParser) -> None:
-        parser.add_argument('-D', '--distribution', action='store_true',
+        parser.add_argument('-a', '--all', action='store_true',
                             help='also show all available distributions for '
                             'each version from the release')
         parser.add_argument('release', nargs='?',
@@ -829,7 +852,7 @@ class _show(COMMAND):
             for distribution in files[version]:
                 app = ' (installed)' \
                         if distribution == installed_distribution else ''
-                if args.distribution or app \
+                if args.all or app \
                         or distribution == args._distribution:
                     if distribution == args._distribution:
                         installable = True
