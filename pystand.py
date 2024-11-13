@@ -126,7 +126,8 @@ def rm_path(path: Path) -> None:
     elif path.exists():
         path.unlink()
 
-def unpack_zst(filename, extract_dir):
+def unpack_zst(filename: str, extract_dir: str) -> None:
+    'Unpack a zstandard compressed tar'
     with open(filename, 'rb') as compressed:
         dctx = zstandard.ZstdDecompressor()
         with dctx.stream_reader(compressed) as reader:
@@ -218,7 +219,8 @@ class VersionMatcher:
 def iter_versions(args: Namespace) -> Iterator[Path]:
     'Iterate over all version dirs'
     for f in args._versions.iterdir():
-        if f.is_dir() and not f.is_symlink() and not f.name.startswith('.'):
+        if f.is_dir() and not f.is_symlink() \
+                and f.name[0] != '.' and f.name[0].isdigit():
             yield f
 
 def get_version_names(args: Namespace) -> list[str]:
