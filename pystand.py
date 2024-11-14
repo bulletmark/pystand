@@ -871,47 +871,40 @@ class _path(COMMAND):
     @staticmethod
     def init(parser: ArgumentParser) -> None:
         parser.add_argument('-p', '--python-path', action='store_true',
-                            help='show full path to python executable')
+                            help='add path to python executable')
+        parser.add_argument('-r', '--resolve', action='store_true',
+                            help='fully resolve given version')
         group = parser.add_mutually_exclusive_group()
-        group.add_argument('-c', '--cache-prefix', action='store_true',
-                           help='print path to cache dir')
+        group.add_argument('-c', '--cache-path', action='store_true',
+                           help='just show path to cache dir')
         group.add_argument('version', nargs='?',
-                           help='print resolved path for specified version')
+                           help='version number to show path for')
 
     @staticmethod
     def run(args: Namespace) -> str | None:
-        if args.cache_prefix:
+        version = args.version
+        if args.cache_path or not version:
             if args.python_path:
                 args.parser.error('Can not specify --python-path.')
-            print(args._downloads.parent)
-            return
 
-        if not args.version:
-            if args.python_path:
-                args.parser.error('Can not specify --python-path.')
-            print(args._versions)
-            return
-
-        matcher = VersionMatcher([f.name for f in iter_versions(args)])
-        version = matcher.match(args.version)
-        if not version:
-            return 'No Python version installed.'
-
-        path = args._versions / version
-        if not path.is_dir():
-            return f'Version "{version}" is not installed.'
-
-        if args.python_path:
-            subpath = path / 'bin' / 'python'
-            if subpath.exists():
-                print(subpath)
-            else:
-                subpath = path / 'python.exe'
-                if subpath.exists():
-                    print(subpath)
-                else:
-                    return f'Error: Can not find python executable in "{path}"'
+            print(args._downloads.parent if args.cache_path else args._versions)
         else:
+            path = args._versions / version
+            if not path.is_symlink() or not path.exists():
+                return f'Version "{version}" is not installed.'
+
+            if args.resolve:
+                path = path.resolve()
+
+            if args.python_path:
+                basepath = path
+                path = basepath / 'bin' / 'python'
+                if not path.exists():
+                    path = basepath / 'python.exe'
+                    if not path.exists():
+                        return 'Error: Can not find python executable in '\
+                                f'"{basepath}"'
+
             print(path)
 
 if __name__ == '__main__':

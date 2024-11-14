@@ -75,16 +75,16 @@ Here are some examples showing how to use an installed version ..
 
 ```sh
 # Use uv to create a virtual environment to be run with latest pystand
-# installed python:
-$ uv venv -p $(pystand path) myenv
+# installed python 3.12:
+$ uv venv -p $(pystand path 3.12) myenv
 
 # Create a regular virtual environment to be run with latest pystand
-# installed python:
-$ $(pystand path -p) -m venv myenv
+# installed python 3.12:
+$ $(pystand path -p 3.12) -m venv myenv
 
 # Use pipx to install a package to be run with pystand installed python
-# specific version:
-$ pipx install --python $(pystand path -p 3.11) cowsay
+# specific version 3.11.1:
+$ pipx install --python $(pystand path -p 3.11.1) cowsay
 ```
 
 See detailed usage information in the [Usage](#usage) section that
@@ -264,17 +264,18 @@ options:
 ### Command `path`
 
 ```
-usage: pystand path [-h] [-p] [-c | version]
+usage: pystand path [-h] [-p] [-r] [-c | version]
 
 Show path prefix to installed version base directory.
 
 positional arguments:
-  version             print resolved path for specified version
+  version            version number to show path for
 
 options:
-  -h, --help          show this help message and exit
-  -p, --python-path   show full path to python executable
-  -c, --cache-prefix  print path to cache dir
+  -h, --help         show this help message and exit
+  -p, --python-path  add path to python executable
+  -r, --resolve      fully resolve given version
+  -c, --cache-path   just show path to cache dir
 ```
 
 ## Installation and Upgrade
@@ -314,7 +315,7 @@ the versions for these are installed by default at
 `~/.local/share/pystand/<version>`.
 
 However, let's say you want to experiment with the new free-threaded
-3.13 build. You can install this to a different directory, e.g.
+3.13 build, installed to a different directory. E.g.:
 
 ```sh
 $ mkdir ./3.13-freethreaded
@@ -328,24 +329,24 @@ $ pystand -P . list
 3.13.0 @ 20241016 distribution="x86_64_v4-unknown-linux-gnu-freethreaded+lto-full"
 ```
 
-Note you can set a different default distribution by
-specifying `--distribution` as a [default
-option](#command-default-options).
+Note you can set a different default distribution by specifying
+`--distribution` as a [default option](#command-default-options).
 
 ## Extrapolation of Python Versions
 
-`pystand` extrapolates any version text you specify on the command line
-to the latest available corresponding installed or release version. For
-example, if you specify `pystand install 3.12` then `pystand` will look
-in the release files to find the latest (i.e. highest) available version
-of `3.12`, e.g. `3.12.3` (at the time of writing), and will install
-that. Of course you can specify the exact version if you wish, e.g.
-`3.12.3` but generally you don't need to bother. This is true for any
-command that takes a version argument so be aware that this may be
-confusing if there are multiple same Python minor versions, e.g.
-`3.12.1` and `3.12.3`, installed from different releases. So in that
-case you should specify the exact version because e.g. `pystand remove
-3.12` will remove `3.12.3` which may not be what you want.
+For all commands except the `path` command, `pystand` extrapolates
+version text you specify on the command line to the latest available
+corresponding installed or release version. For example, if you specify
+`pystand install 3.12` then `pystand` will look in the release files to
+find the latest (i.e. highest) available version of `3.12`, e.g.
+`3.12.3` (at the time of writing), and will install that. Of course you
+can specify the exact version if you wish, e.g. `3.12.3` but generally
+you don't need to bother. This is true for any command that takes a
+version argument so be aware that this may be confusing if there are
+multiple same Python minor versions, e.g. `3.12.1` and `3.12.3`,
+installed from different releases. So in that case you should specify
+the exact version because e.g. `pystand remove 3.12` will remove
+`3.12.3` which may not be what you want.
 
 Note, consistent with this, you actually don't need to specify a
 minor version, e.g. `pystand install 3` would also install `3.12.3`
@@ -357,6 +358,37 @@ symlink `~/.local/share/pystand/versions/3.12` will be created pointing
 to `~/.local/share/pystand/versions/3.12.3` so that you can optionally
 hard code the symlink directory in places where it can not be set
 dynamically (i.e. where using `pystand path` is not an option).
+
+You can exploit these symlinks when you create virtual environments
+using the `pystand path` command (or just hard code the actual link/path
+for your environment/platform). E.g. The following creates a virtual
+environment which runs with whatever the currently latest installed
+Python 3.12 version is:
+
+```sh
+# Use uv to create a virtual environment to be run with a symlink to
+# currently latest installed python 3.12:
+$ uv venv -p $(pystand path 3.12)
+```
+
+So if you then update to a new version of Python 3.12 using `pystand`,
+e.g. from 3.12.3 to 3.12.4, the virtual environment will automatically
+use the new Python version. However, if you for some reason want to
+create the virtual environment with a specific version of Python that is
+never changed, then just specify that exact version when you create the
+virtual environment, e.g.:
+
+```sh
+# Use uv to create a virtual environment to be run with specific pystand
+# installed python 3.12.2:
+$ uv venv -p $(pystand path 3.12.2)
+
+# If you can't be bothered to look up the current latest version, then
+# the following command will do the same thing as above because it
+# resolves the symlink to the current latest 3.12 version at the time
+# you run this command:
+$ uv venv -p $(pystand path -r 3.12)
+```
 
 ## Command Default Options
 
