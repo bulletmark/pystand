@@ -604,8 +604,8 @@ def main() -> str | None:
                 'using -D/--distribution option.')
 
     # Keep some useful info in the namespace passed to the command
-    prefix_dir = Path(args.prefix_dir).expanduser()
-    cache_dir = Path(args.cache_dir).expanduser()
+    prefix_dir = Path(args.prefix_dir).expanduser().resolve()
+    cache_dir = Path(args.cache_dir).expanduser().resolve()
 
     args._distribution = distribution
     args._data = f'{PROG}.json'
