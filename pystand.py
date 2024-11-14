@@ -361,7 +361,7 @@ def update_version_symlinks(args: Namespace) -> None:
     oldlinks = {}
     vers = []
     for path in base.iterdir():
-        if not path.name.startswith('.'):
+        if path.name[0] != '.' and path.name[0].isdigit():
             if path.is_symlink():
                 oldlinks[path.name] = os.readlink(str(path))
             else:
