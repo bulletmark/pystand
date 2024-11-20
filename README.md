@@ -247,18 +247,21 @@ options:
 ### Command `show`
 
 ```
-usage: pystand show [-h] [-a] [release]
+usage: pystand show [-h] [-r RELEASE] [-a] [re_match]
 
 Show versions available from a release.
 
 positional arguments:
-  release     python-build-standalone YYYYMMDD release to show (e.g.
-              20240415), default is latest release
+  re_match              show only versions+distributions matching this regular
+                        expression pattern
 
 options:
-  -h, --help  show this help message and exit
-  -a, --all   also show all available distributions for each version from the
-              release
+  -h, --help            show this help message and exit
+  -r RELEASE, --release RELEASE
+                        python-build-standalone YYYYMMDD release to show (e.g.
+                        20240415), default is latest release
+  -a, --all             show all available distributions for each version from
+                        the release
 ```
 
 ### Command `path`
@@ -302,35 +305,6 @@ To uninstall:
 ```sh
 $ pipx uninstall pystand
 ```
-
-## Installing Other Builds/Distributions
-
-The _`install_only_stripped`_ build of each distribution is installed by
-default. See description of distributions/builds
-[here](https://gregoryszorc.com/docs/python-build-standalone/main/running.html#obtaining-distributions).
-However, you can choose to install other distributions/builds. E.g. If
-we use a standard modern Linux x86_64 machine as an example, the default
-distribution is _`x86_64-unknown-linux-gnu-install_only_stripped`_ and
-the versions for these are installed by default at
-`~/.local/share/pystand/<version>`.
-
-However, let's say you want to experiment with the new free-threaded
-3.13 build, installed to a different directory. E.g.:
-
-```sh
-$ mkdir ./3.13-freethreaded
-$ cd ./3.13-freethreaded
-
-$ pystand -P. -D x86_64-unknown-linux-gnu-freethreaded+lto-full install 3.13
-$ ./3.13/bin/python -V
-Python 3.13.0
-
-$ pystand -P . list
-3.13.0 @ 20241016 distribution="x86_64_v4-unknown-linux-gnu-freethreaded+lto-full"
-```
-
-Note you can set a different default distribution by specifying
-`--distribution` as a [default option](#command-default-options).
 
 ## Extrapolation of Python Versions
 
@@ -390,6 +364,150 @@ $ uv venv -p $(pystand path 3.12.2)
 $ uv venv -p $(pystand path -r 3.12)
 ```
 
+## Installing Other Builds/Distributions
+
+The _`install_only_stripped`_ distribution build is installed by default
+for your running machine architecture. See description of
+distributions/builds
+[here](https://gregoryszorc.com/docs/python-build-standalone/main/running.html#obtaining-distributions).
+However, you can choose to install other distributions/builds (even for
+other architectures). E.g. If we use a standard modern Linux x86_64
+machine as an example, the default distribution is
+_`x86_64-unknown-linux-gnu-install_only_stripped`_ and the versions for
+these are installed by default at `~/.local/share/pystand/<version>`.
+
+However, let's say you want to experiment with the new free-threaded
+3.13 build, installed to a different directory. E.g.:
+
+```sh
+$ mkdir ./3.13-freethreaded
+$ cd ./3.13-freethreaded
+
+$ pystand -P. -D x86_64-unknown-linux-gnu-freethreaded+lto-full install 3.13
+$ ./3.13/bin/python -V
+Python 3.13.0
+
+$ pystand -P . list
+3.13.0 @ 20241016 distribution="x86_64_v4-unknown-linux-gnu-freethreaded+lto-full"
+```
+
+Note you can set a different default distribution by specifying
+`--distribution` as a [default option](#command-default-options).
+
+### Searching for Available Versions and Distributions
+
+The `show` command can be used to search for distributions as seen in the
+following examples.
+
+```sh
+
+List all the versions installed on this system (at the default location):
+
+```sh
+$ pystand list
+3.8.20 @ 20241002 distribution="x86_64-unknown-linux-gnu-install_only_stripped"
+3.9.20 @ 20241016 distribution="x86_64-unknown-linux-gnu-install_only_stripped"
+3.12.7 @ 20241016 distribution="x86_64-unknown-linux-gnu-install_only_stripped"
+3.13.0 @ 20241016 distribution="x86_64-unknown-linux-gnu-install_only_stripped"
+```
+
+The above shows versions 3.9, 3.12, and 3.13 are installed from the latest
+release 20241016. Version 3.8 is installed from the previous release
+20241002 (and is not available in the latest release otherwise it would
+be shown with an update message).
+
+Now show all available versions from the latest release:
+
+```sh
+$ pystand show
+3.9.20 @ 20241016 distribution="x86_64-unknown-linux-gnu-install_only_stripped" (installed)
+3.10.15 @ 20241016 distribution="x86_64-unknown-linux-gnu-install_only_stripped"
+3.11.10 @ 20241016 distribution="x86_64-unknown-linux-gnu-install_only_stripped"
+3.12.7 @ 20241016 distribution="x86_64-unknown-linux-gnu-install_only_stripped" (installed)
+3.13.0 @ 20241016 distribution="x86_64-unknown-linux-gnu-install_only_stripped" (installed)
+```
+
+We can see that versions 3.9, 3.12, and 3.13 are already installed (as
+we also knew from list output), and that 3.10 and 3.11 are also available.
+
+What is available from the previous release 20241002?
+
+```sh
+$ pystand show -r 20241002
+3.8.20 @ 20241002 distribution="x86_64-unknown-linux-gnu-install_only_stripped" (installed)
+3.9.20 @ 20241002 distribution="x86_64-unknown-linux-gnu-install_only_stripped"
+3.10.15 @ 20241002 distribution="x86_64-unknown-linux-gnu-install_only_stripped"
+3.11.10 @ 20241002 distribution="x86_64-unknown-linux-gnu-install_only_stripped"
+3.12.7 @ 20241002 distribution="x86_64-unknown-linux-gnu-install_only_stripped"
+3.13.0rc3 @ 20241002 distribution="x86_64-unknown-linux-gnu-install_only_stripped"
+```
+
+Let's install one of the threaded builds of Python 3.13. We can use the
+`-a/-all` option to show all available distributions and then give the
+`show` command a [regular
+expression](https://en.wikipedia.org/wiki/Regular_expression) to filter
+the output (this is really just a shorthand for piping the output of
+`show -a` to grep). E.g.:
+
+```sh
+$ pystand show -a 3.13.*x86_64.*unknown-linux-gnu.*thread
+3.13.0 @ 20241016 distribution="x86_64-unknown-linux-gnu-freethreaded+debug-full"
+3.13.0 @ 20241016 distribution="x86_64-unknown-linux-gnu-freethreaded+pgo+lto-full"
+3.13.0 @ 20241016 distribution="x86_64-unknown-linux-gnu-freethreaded+pgo-full"
+3.13.0 @ 20241016 distribution="x86_64_v2-unknown-linux-gnu-freethreaded+debug-full"
+3.13.0 @ 20241016 distribution="x86_64_v2-unknown-linux-gnu-freethreaded+pgo+lto-full"
+3.13.0 @ 20241016 distribution="x86_64_v2-unknown-linux-gnu-freethreaded+pgo-full"
+3.13.0 @ 20241016 distribution="x86_64_v3-unknown-linux-gnu-freethreaded+debug-full"
+3.13.0 @ 20241016 distribution="x86_64_v3-unknown-linux-gnu-freethreaded+pgo+lto-full"
+3.13.0 @ 20241016 distribution="x86_64_v3-unknown-linux-gnu-freethreaded+pgo-full"
+3.13.0 @ 20241016 distribution="x86_64_v4-unknown-linux-gnu-freethreaded+debug-full"
+3.13.0 @ 20241016 distribution="x86_64_v4-unknown-linux-gnu-freethreaded+lto-full"
+3.13.0 @ 20241016 distribution="x86_64_v4-unknown-linux-gnu-freethreaded+noopt-full"
+```
+
+So let's install the
+`x86_64_v3-unknown-linux-gnu-freethreaded+pgo+lto-full` build of Python
+3.13 (to the default location):
+
+```sh
+$ pystand -D x86_64_v3-unknown-linux-gnu-freethreaded+pgo+lto-full install 3.13
+Version "3.13.0" is already installed.
+```
+
+An error is given because the version is already installed. We can
+overwrite that with the `-f/--force` option:
+
+```sh
+$ pystand -D x86_64_v3-unknown-linux-gnu-freethreaded+pgo+lto-full install -f 3.13
+Version 3.13.0 @ 20241016 installed.
+```
+
+Now we can see the new version distribution is installed:
+
+```sh
+
+$ pystand list
+3.8.20 @ 20241002 distribution="x86_64-unknown-linux-gnu-install_only_stripped"
+3.9.20 @ 20241016 distribution="x86_64-unknown-linux-gnu-install_only_stripped"
+3.12.7 @ 20241016 distribution="x86_64-unknown-linux-gnu-install_only_stripped"
+3.13.0 @ 20241016 distribution="x86_64_v3-unknown-linux-gnu-freethreaded+pgo+lto-full"
+
+$ pystand show
+3.9.20 @ 20241016 distribution="x86_64-unknown-linux-gnu-install_only_stripped" (installed)
+3.10.15 @ 20241016 distribution="x86_64-unknown-linux-gnu-install_only_stripped"
+3.11.10 @ 20241016 distribution="x86_64-unknown-linux-gnu-install_only_stripped"
+3.12.7 @ 20241016 distribution="x86_64-unknown-linux-gnu-install_only_stripped" (installed)
+3.13.0 @ 20241016 distribution="x86_64-unknown-linux-gnu-install_only_stripped"
+3.13.0 @ 20241016 distribution="x86_64_v3-unknown-linux-gnu-freethreaded+pgo+lto-full" (installed)
+```
+
+Note that `pystand` caches all downloaded files (at least for a period
+specified by `--purge-days`) so you can easily switch between different
+versions/distributions quite quickly. You can also choose to install any
+distribution/build in a specific directory using the `-P/--prefix-dir`
+global option if you want to keep different distributions separate and
+available in parallel.
+
 ## Command Default Options
 
 You can add default global options to a personal configuration file
@@ -406,11 +524,11 @@ as defaults.
 
 ## Github API Rate Limiting
 
-This tool minimises and caches Github API responses from the
-[`python-build-standalone`][pbs] repository. However, if you install
-many different versions particularly across various releases, you may
-get rate limited by Github so the command will block and you will see
-"backoff" messages reported. You can create a Github access token to
+This tool minimises and caches Github API responses and file downloads
+from the [`python-build-standalone`][pbs] repository. However, if you
+install many different versions particularly across various releases,
+you may get rate limited by Github so the command can block and you will
+see "backoff" messages reported. You can create a Github access token to
 gain increased rate limits. Create a token in your Github account under
 `Settings -> Developer settings -> Personal access tokens`. Specify the
 token on the command line with `--github-access-token`, or set that as a

@@ -827,12 +827,15 @@ class _show(COMMAND):
     'Show versions available from a release.'
     @staticmethod
     def init(parser: ArgumentParser) -> None:
-        parser.add_argument('-a', '--all', action='store_true',
-                            help='also show all available distributions for '
-                            'each version from the release')
-        parser.add_argument('release', nargs='?',
+        parser.add_argument('-r', '--release',
                             help=f'{REPO} YYYYMMDD release to show (e.g. '
                             f'{SAMPL_RELEASE}), default is latest release')
+        parser.add_argument('-a', '--all', action='store_true',
+                            help='show all available distributions for '
+                            'each version from the release')
+        parser.add_argument('re_match', nargs='?',
+                            help='show only versions+distributions '
+                            'matching this regular expression pattern')
 
     @staticmethod
     def run(args: Namespace) -> None:
@@ -859,8 +862,11 @@ class _show(COMMAND):
                     if distribution == args._distribution:
                         installable = True
 
-                    print(f'{fmt(version, release)} '
-                          f'distribution="{distribution}"{app}')
+                    if not args.re_match or \
+                            re.search(args.re_match,
+                                      f'{version}+{distribution}'):
+                        print(f'{fmt(version, release)} '
+                            f'distribution="{distribution}"{app}')
         if not installable:
             print(f'Warning: no distribution="{args._distribution}" '
                   'versions found in ' f'release "{release}".')
