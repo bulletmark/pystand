@@ -167,7 +167,7 @@ individual command:
 ### Command `install`
 
 ```
-usage: pystand install [-h] [-r RELEASE] [-f] version [version ...]
+usage: pystand install [-h] [-r RELEASE] [-f] [-s] version [version ...]
 
 Install one or more versions from a python-build-standalone release.
 
@@ -181,6 +181,8 @@ options:
                         YYYYMMDD release (e.g. 20240415), default is latest
                         release
   -f, --force           force install even if already installed
+  -s, --include-source  also install source files if available in distribution
+                        download
 ```
 
 ### Command `update`

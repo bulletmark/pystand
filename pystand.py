@@ -163,9 +163,19 @@ def fetch(args: Namespace, release: str, url: str, tdir: Path) -> str | None:
         except Exception as e:
             error = f'Failed to unpack "{url}": {e}'
         else:
-            pdir = tmpdir / 'python' / 'install'
-            if not pdir.exists():
-                pdir = pdir.parent
+            pdir = tmpdir / 'python'
+            idir = pdir / 'install'
+            if idir.exists():
+                # This is a source distribution, copy the source if
+                # requested
+                if args.include_source:
+                    srcdir = idir / 'src'
+                    for subpath in pdir.iterdir():
+                        if subpath.name != idir.name:
+                            srcdir.mkdir(parents=True, exist_ok=True)
+                            subpath.replace(srcdir / subpath.name)
+
+                pdir = idir
 
             pdir.replace(tdir)
 
@@ -636,6 +646,9 @@ class _install(COMMAND):
                             'default is latest release')
         parser.add_argument('-f', '--force', action='store_true',
                             help='force install even if already installed')
+        parser.add_argument('-s', '--include-source', action='store_true',
+                            help='also install source files if available in '
+                            'distribution download')
         parser.add_argument('version', nargs='+',
                             help='version to install. E.g. 3.12 or 3.12.3')
 
@@ -692,7 +705,8 @@ class _update(COMMAND):
 
         matcher = VersionMatcher(files)
         for version in get_version_names(args):
-            if not (data := get_json(args._versions / version / args._data)):
+            vdir = args._versions / version
+            if not (data := get_json(vdir / args._data)):
                 continue
 
             if (release := data.get('release')) == release_target:
@@ -718,6 +732,10 @@ class _update(COMMAND):
             print(f'{fmt(version, release)} updating to '
                   f'{fmt(nextver, release_target)} '
                   f'distribution="{distribution}" ..')
+
+            # If the source was originally included, then include it in
+            # the update.
+            args.include_source = (vdir / 'src').is_dir()
 
             if error := install(args, new_vdir, release_target, distribution,
                                 files):
