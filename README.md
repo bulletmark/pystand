@@ -114,7 +114,7 @@ usage: pystand [-h] [-D DISTRIBUTION] [-P PREFIX_DIR] [-C CACHE_DIR]
                   [-M CACHE_MINUTES] [--purge-days PURGE_DAYS]
                   [--github-access-token GITHUB_ACCESS_TOKEN] [--no-strip]
                   [-V]
-                  {install,update,remove,list,show,path} ...
+                  {install,update,upgrade,remove,uninstall,list,show,path} ...
 
 Command line tool to download, install, and update pre-built Python versions
 from the python-build-standalone project at
@@ -147,18 +147,18 @@ options:
   -V, --version         just show pystand version
 
 Commands:
-  {install,update,remove,list,show,path}
+  {install,update,upgrade,remove,uninstall,list,show,path}
     install             Install one or more versions from a python-build-
                         standalone release.
-    update              Update one, more, or all versions to another release.
-    remove              Remove/uninstall one, more, or all versions.
+    update (upgrade)    Update one, more, or all versions to another release.
+    remove (uninstall)  Remove/uninstall one, more, or all versions.
     list                List installed versions and show which have an update
                         available.
     show                Show versions available from a release.
     path                Show path prefix to installed version base directory.
 
-Note you can set default starting global options in
-$HOME/.config/pystand-flags.conf.
+Some commands offer aliases as shown in brackets above. Note you can set
+default starting global options in $HOME/.config/pystand-flags.conf.
 ```
 
 Type `pystand <command> -h` to see specific help/usage for any
@@ -205,6 +205,8 @@ options:
                         can be specified with --all)
   -k, --keep            keep old version after updating (but only if different
                         version number)
+
+aliases: upgrade
 ```
 
 ### Command `remove`
@@ -225,6 +227,8 @@ options:
   -r RELEASE, --release RELEASE
                         only remove versions if from specified YYYMMDD release
                         (e.g. 20240415)
+
+aliases: uninstall
 ```
 
 ### Command `list`

@@ -13,7 +13,7 @@ upload: build
 	twine3 upload dist/*
 
 doc:
-	update-readme-usage
+	update-readme-usage -A
 
 clean:
 	@rm -vrf *.egg-info build/ dist/ __pycache__

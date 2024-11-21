@@ -533,8 +533,9 @@ def main() -> str | None:
 
     # Parse arguments
     opt = ArgumentParser(description=__doc__,
-              epilog='Note you can set default starting global options '
-                         f'in {CNFFILE}.')
+            epilog='Some commands offer aliases as shown in brackets above. '
+                'Note you can set default starting global options in '
+                f'{CNFFILE}.')
 
     # Set up main/global arguments
     opt.add_argument('-D', '--distribution',
@@ -575,8 +576,10 @@ def main() -> str | None:
         else:
             return f'Must define a docstring for command class "{name}".'
 
+        aliases = cls.aliases if hasattr(cls, 'aliases') else []
         title = get_title(desc)
-        cmdopt = cmd.add_parser(name, description=desc, help=title)
+        cmdopt = cmd.add_parser(name, description=desc, help=title,
+                                aliases=aliases)
 
         # Set up this commands own arguments, if it has any
         if hasattr(cls, 'init'):
@@ -679,6 +682,8 @@ class _install(COMMAND):
 @COMMAND.add
 class _update(COMMAND):
     'Update one, more, or all versions to another release.'
+    aliases = ['upgrade']
+
     @staticmethod
     def init(parser: ArgumentParser) -> None:
         parser.add_argument('-r', '--release',
@@ -747,6 +752,8 @@ class _update(COMMAND):
 @COMMAND.add
 class _remove(COMMAND):
     'Remove/uninstall one, more, or all versions.'
+    aliases = ['uninstall']
+
     @staticmethod
     def init(parser: ArgumentParser) -> None:
         parser.add_argument('-a', '--all', action='store_true',
