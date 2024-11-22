@@ -255,7 +255,8 @@ options:
 ```
 usage: pystand show [-h] [-r RELEASE] [-a] [re_match]
 
-Show versions available from a release.
+Show versions available from a release. View available releases and their
+distributions at https://github.com/indygreg/python-build-standalone/releases.
 
 positional arguments:
   re_match              show only versions+distributions matching this regular

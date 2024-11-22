@@ -849,7 +849,12 @@ class _list(COMMAND):
 
 @COMMAND.add
 class _show(COMMAND):
-    'Show versions available from a release.'
+    '''
+    Show versions available from a release.
+
+    View available releases and their distributions at
+    https://github.com/indygreg/python-build-standalone/releases.
+    '''
     @staticmethod
     def init(parser: ArgumentParser) -> None:
         parser.add_argument('-r', '--release',
