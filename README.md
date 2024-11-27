@@ -124,8 +124,8 @@ options:
   -h, --help            show this help message and exit
   -D DISTRIBUTION, --distribution DISTRIBUTION
                         python-build-standalone distribution. Default is
-                        "x86_64-unknown-linux-gnu-install_only_stripped" for
-                        this host.
+                        "x86_64_v3-unknown-linux-gnu-install_only_stripped"
+                        for this host.
   -P PREFIX_DIR, --prefix-dir PREFIX_DIR
                         specify prefix dir for storing versions. Default is
                         "$HOME/.local/share/pystand"
