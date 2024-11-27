@@ -44,14 +44,14 @@ CNFFILE = platformdirs.user_config_path(f'{PROG}-flags.conf')
 
 # Default distributions for various platforms
 DISTRIBUTIONS = {
-    ('Linux', 'x86_64'): 'x86_64-unknown-linux-gnu-install_only_stripped',
+    ('Linux', 'x86_64'): 'x86_64_v3-unknown-linux-gnu-install_only_stripped',
     ('Linux', 'aarch64'): 'aarch64-unknown-linux-gnu-install_only_stripped',
     ('Linux', 'armv7l'): 'armv7-unknown-linux-gnueabihf-install_only_stripped',
     ('Linux', 'armv8l'): 'armv7-unknown-linux-gnueabihf-install_only_stripped',
     ('Darwin', 'x86_64'): 'x86_64-apple-darwin-install_only_stripped',
     ('Darwin', 'aarch64'): 'aarch64-apple-darwin-install_only_stripped',
-    ('Windows', 'x86_64'): 'x86_64-pc-windows-msvc-install_only_stripped',
-    ('Windows', 'i686'): 'i686-pc-windows-msvc-install_only_stripped',
+    ('Windows', 'x86_64'): 'x86_64-pc-windows-msvc-shared-install_only_stripped',
+    ('Windows', 'i686'): 'i686-pc-windows-msvc-shared-install_only_stripped',
 }
 
 def is_admin() -> bool:
