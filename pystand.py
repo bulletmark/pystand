@@ -50,7 +50,8 @@ DISTRIBUTIONS = {
     ('Linux', 'armv8l'): 'armv7-unknown-linux-gnueabihf-install_only_stripped',
     ('Darwin', 'x86_64'): 'x86_64-apple-darwin-install_only_stripped',
     ('Darwin', 'aarch64'): 'aarch64-apple-darwin-install_only_stripped',
-    ('Windows', 'x86_64'): 'x86_64-pc-windows-msvc-shared-install_only_stripped',
+    ('Windows', 'x86_64'):
+        'x86_64-pc-windows-msvc-shared-install_only_stripped',
     ('Windows', 'i686'): 'i686-pc-windows-msvc-shared-install_only_stripped',
 }
 
@@ -414,28 +415,28 @@ def update_version_symlinks(args: Namespace) -> None:
 
 def purge_unused_releases(args: Namespace) -> None:
     'Purge old releases that are no longer needed and have expired'
-    releases = set(f.name for f in args._releases.iterdir())
-    keep = set()
+    # Want to keep releases for versions that we currently have installed
+    keep = {r for v in iter_versions(args)
+            if (r := get_json(v / args._data).get('release'))}
+
+    # Add current release to keep list (even if not currently installed)
     if args._latest_release.exists():
         keep.add(args._latest_release.read_text().strip())
 
-    for version in iter_versions(args):
-        if (release := get_json(version / args._data).get('release')):
-            keep.add(release)
-
+    # Purge any release lists that are no longer used and have expired
     now_secs = time.time()
     end_secs = args.purge_days * 86400
-    releases -= keep
-    for release in releases:
-        rdir = args._releases / release
-        if (rdir.stat().st_mtime + end_secs) < now_secs:
-            rdir.unlink()
-        else:
-            keep.add(release)
+    for path in args._releases.iterdir():
+        if path.name not in keep:
+            if (path.stat().st_mtime + end_secs) < now_secs:
+                path.unlink()
+            else:
+                keep.add(path.name)
 
-    downloads = set(f.name for f in args._downloads.iterdir())
-    for release in (downloads - keep):
-        rm_path(args._downloads / release)
+    # Purge any downloads for releases that have expired
+    for path in args._downloads.iterdir():
+        if path.name not in keep:
+            rm_path(path)
 
 class COMMAND:
     'Base class for all commands'
