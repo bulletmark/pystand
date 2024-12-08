@@ -19,9 +19,9 @@ import tarfile
 import time
 import urllib.parse
 import urllib.request
-from argparse import ArgumentParser, Namespace
+from argparse import ArgumentParser, Namespace, SUPPRESS
 from collections import defaultdict
-from datetime import date
+from datetime import datetime, date, timedelta
 from pathlib import Path
 from typing import Any, Iterable, Iterator
 
@@ -30,11 +30,10 @@ import platformdirs
 import zstandard
 from packaging.version import parse as parse_version
 
-REPO_OWNER = 'indygreg'
 REPO = 'python-build-standalone'
-GITHUB_REPO = f'{REPO_OWNER}/{REPO}'
-LATEST_RELEASE_URL = f'https://raw.githubusercontent.com/{GITHUB_REPO}'\
-        '/latest-release/latest-release.json'
+GITHUB_REPO = f'indygreg/{REPO}'
+GITHUB_SITE = f'https://github.com/{GITHUB_REPO}'
+LATEST_RELEASE = f'{GITHUB_SITE}/releases.atom'
 
 # Sample release tag for documentation/usage examples
 SAMPL_RELEASE = '20240415'
@@ -275,6 +274,34 @@ def check_release_tag(release: str) -> str | None:
 
     return None
 
+# Note we use a simple direct URL fetch to get the latest tag info
+# because it is much faster than using the GitHub API, and has no
+# rate-limits.
+def fetch_tags() -> Iterator[tuple[str, str]]:
+    'Fetch the latest release tag from the GitHub release atom feed'
+    import xml.etree.ElementTree as et
+    try:
+        with urllib.request.urlopen(LATEST_RELEASE) as url:
+            data = et.parse(url).getroot()
+    except Exception:
+        sys.exit('Failed to fetch latest YYYYMMDD release atom file.')
+
+    for child in data.iter():
+        for entry in child.findall('{http://www.w3.org/2005/Atom}entry'):
+            tl = entry.findtext('{http://www.w3.org/2005/Atom}title')
+            dt = entry.findtext('{http://www.w3.org/2005/Atom}updated')
+            if tl and dt:
+                yield tl, dt
+
+def fetch_tag_latest(args: Namespace) -> str:
+    now = datetime.now().astimezone()
+    for title, datestr in fetch_tags():
+        timestamp = datetime.fromisoformat(datestr)
+        if now - timestamp >= args._min_release_time:
+            return title
+
+    return ''
+
 def get_release_tag(args: Namespace) -> str:
     'Return the release tag, or latest if not specified'
     if release := args.release:
@@ -288,19 +315,8 @@ def get_release_tag(args: Namespace) -> str:
         if time.time() < (stat.st_mtime + int(args.cache_minutes * 60)):
             return args._latest_release.read_text().strip()
 
-    # Note this simple URL fetch is much faster than using the GitHub
-    # API, and has no rate-limits, so we use it to get the latest
-    # release tag.
-    try:
-        with urllib.request.urlopen(LATEST_RELEASE_URL) as url:
-            data = json.load(url)
-    except Exception:
-        sys.exit('Failed to fetch latest YYYYMMDD release tag.')
-
-    tag = data.get('tag')
-
-    if not tag:
-        sys.exit('Latest YYYYMMDD release tag timestamp file is corrupted.')
+    if not (tag := fetch_tag_latest(args)):
+        sys.exit('Latest YYYYMMDD release tag timestamp file is unavailable.')
 
     args._latest_release.write_text(tag + '\n')
     return tag
@@ -541,8 +557,7 @@ def main() -> str | None:
     # Set up main/global arguments
     opt.add_argument('-D', '--distribution',
                      help=f'{REPO} distribution. '
-                     f'Default is "{distro_help}" '
-                     'for this host.')
+                     f'Default is "{distro_help} for this host.')
     opt.add_argument('-P', '--prefix-dir', default=prefix_dir,
                      help='specify prefix dir for storing '
                      'versions. Default is "%(default)s"')
@@ -564,6 +579,8 @@ def main() -> str | None:
                      help='do not strip downloaded binaries')
     opt.add_argument('-V', '--version', action='store_true',
                      help=f'just show {PROG} version')
+    opt.add_argument('--min-release-hours', default=6, type=int,
+                     help=SUPPRESS)
     cmd = opt.add_subparsers(title='Commands', dest='cmdname')
 
     # Add each command ..
@@ -632,6 +649,7 @@ def main() -> str | None:
     args._releases = cache_dir / 'releases'
     args._releases.mkdir(parents=True, exist_ok=True)
     args._latest_release = cache_dir / 'latest_release'
+    args._min_release_time = timedelta(hours=args.min_release_hours)
 
     result = args.func(args)
     purge_unused_releases(args)
@@ -850,17 +868,21 @@ class _list(COMMAND):
 
 @COMMAND.add
 class _show(COMMAND):
-    '''
+    doc = f'''
     Show versions available from a release.
 
     View available releases and their distributions at
-    https://github.com/indygreg/python-build-standalone/releases.
+    {GITHUB_SITE}/releases.
     '''
+
     @staticmethod
     def init(parser: ArgumentParser) -> None:
-        parser.add_argument('-r', '--release',
-                            help=f'{REPO} YYYYMMDD release to show (e.g. '
-                            f'{SAMPL_RELEASE}), default is latest release')
+        group = parser.add_mutually_exclusive_group()
+        group.add_argument('-l', '--list', action='store_true',
+                           help='just list recent releases')
+        group.add_argument('-r', '--release',
+                           help=f'{REPO} YYYYMMDD release to show (e.g. '
+                           f'{SAMPL_RELEASE}), default is latest release')
         parser.add_argument('-a', '--all', action='store_true',
                             help='show all available distributions for '
                             'each version from the release')
@@ -870,6 +892,23 @@ class _show(COMMAND):
 
     @staticmethod
     def run(args: Namespace) -> None:
+        if args.all and args.list:
+            args.parser.error('Can not specify --all with --list.')
+
+        if args.list:
+            now = datetime.now().astimezone()
+            for title, datestr in fetch_tags():
+                if args.re_match and not re.search(args.re_match, title):
+                    continue
+
+                tdiff = now - datetime.fromisoformat(datestr)
+                if tdiff < args._min_release_time:
+                    print(title, '(pending)')
+                else:
+                    print(title)
+
+            return
+
         release = get_release_tag(args)
         files = get_release_files(args, release, 'cpython')
         if not files:
