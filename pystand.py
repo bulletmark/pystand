@@ -561,7 +561,7 @@ def main() -> str | None:
                      help='optional Github access token. Can specify to reduce '
                      'rate limiting.')
     opt.add_argument('--no-strip', action='store_true',
-                     help='do strip downloaded binaries')
+                     help='do not strip downloaded binaries')
     opt.add_argument('-V', '--version', action='store_true',
                      help=f'just show {PROG} version')
     cmd = opt.add_subparsers(title='Commands', dest='cmdname')

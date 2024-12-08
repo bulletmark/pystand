@@ -143,7 +143,7 @@ options:
   --github-access-token GITHUB_ACCESS_TOKEN
                         optional Github access token. Can specify to reduce
                         rate limiting.
-  --no-strip            do strip downloaded binaries
+  --no-strip            do not strip downloaded binaries
   -V, --version         just show pystand version
 
 Commands:
