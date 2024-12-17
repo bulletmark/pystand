@@ -539,9 +539,10 @@ install many different versions particularly across various releases,
 you may get rate limited by Github so the command can block and you will
 see "backoff" messages reported. You can create a Github access token to
 gain increased rate limits. Create a token in your Github account under
-`Settings -> Developer settings -> Personal access tokens`. Specify the
-token on the command line with `--github-access-token`, or set that as a
-[default option](#command-default-options).
+`Settings -> Developer settings -> Personal access tokens`. You can use
+either a Github "fine-grained" or "classic" token. Specify the token on
+the command line with `--github-access-token`, or set that as a [default
+option](#command-default-options).
 
 ## Command Line Tab Completion
 
