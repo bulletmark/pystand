@@ -10,7 +10,7 @@ build:
 	python3 -m build
 
 upload: build
-	twine3 upload dist/*
+	uv-publish
 
 doc:
 	update-readme-usage -A
