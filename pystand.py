@@ -19,13 +19,14 @@ import tarfile
 import time
 import urllib.parse
 import urllib.request
-from argparse import ArgumentParser, Namespace, SUPPRESS
+from argparse import SUPPRESS, ArgumentParser, Namespace
 from collections import defaultdict
-from datetime import datetime, date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any, Iterable, Iterator
 
 import argcomplete
+import github
 import platformdirs
 import zstandard
 from packaging.version import parse as parse_version
@@ -106,15 +107,13 @@ def get_gh(args: Namespace) -> Any:
     if get_gh_handle:
         return get_gh_handle
 
-    from github import Github
     if args.github_access_token:
-        from github import Auth
-        auth = Auth.Token(args.github_access_token)
+        auth = github.Auth.Token(args.github_access_token)
     else:
         auth = None
 
     # Save this handle globally for future use
-    get_gh_handle = Github(auth=auth)  # type: ignore
+    get_gh_handle = github.Github(auth=auth)  # type: ignore
     return get_gh_handle
 
 def rm_path(path: Path) -> None:
@@ -350,6 +349,7 @@ def add_file(files: dict, tag: str, name: str, url: str) -> None:
 
 def get_release_files(args, tag, implementation: str | None = None) -> dict:
     'Return the release files for the given tag'
+    from github.GithubException import UnknownObjectException
     # Look for tag data in our release cache
     jfile = args._releases / tag
     if not (files := get_json(jfile)):
@@ -362,7 +362,7 @@ def get_release_files(args, tag, implementation: str | None = None) -> dict:
         gh = get_gh(args)
         try:
             release = gh.get_repo(GITHUB_REPO).get_release(tag)
-        except Exception:
+        except UnknownObjectException:
             return {}
 
         # Iterate over the release assets and store pertinent files in a
