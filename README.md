@@ -117,8 +117,8 @@ usage: pystand [-h] [-D DISTRIBUTION] [-P PREFIX_DIR] [-C CACHE_DIR]
                   {install,update,upgrade,remove,uninstall,list,show,path} ...
 
 Command line tool to download, install, and update pre-built Python versions
-from the python-build-standalone project at
-https://github.com/indygreg/python-build-standalone.
+from the python-build-standalone project at https://github.com/astral-
+sh/python-build-standalone.
 
 options:
   -h, --help            show this help message and exit
@@ -256,7 +256,8 @@ options:
 usage: pystand show [-h] [-l | -r RELEASE] [-a] [re_match]
 
 Show versions available from a release. View available releases and their
-distributions at https://github.com/indygreg/python-build-standalone/releases.
+distributions at https://github.com/astral-sh/python-build-
+standalone/releases.
 
 positional arguments:
   re_match              show only versions+distributions matching this regular
@@ -564,8 +565,8 @@ FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License at
 <http://www.gnu.org/licenses/> for more details.
 
 [pystand]: https://github.com/bulletmark/pystand
-[pbs]: https://github.com/indygreg/python-build-standalone
-[pbs-rel]: https://github.com/indygreg/python-build-standalone/releases
+[pbs]: https://github.com/astral-sh/python-build-standalone
+[pbs-rel]: https://github.com/astral-sh/python-build-standalone/releases
 [pipx]: https://github.com/pypa/pipx
 [pipxu]: https://github.com/bulletmark/pipxu
 [uvtool]: https://docs.astral.sh/uv/guides/tools/#installing-tools

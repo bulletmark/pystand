@@ -3,7 +3,7 @@
 '''
 Command line tool to download, install, and update pre-built Python
 versions from the python-build-standalone project at
-https://github.com/indygreg/python-build-standalone.
+https://github.com/astral-sh/python-build-standalone.
 '''
 from __future__ import annotations
 
@@ -32,7 +32,7 @@ import zstandard
 from packaging.version import parse as parse_version
 
 REPO = 'python-build-standalone'
-GITHUB_REPO = f'indygreg/{REPO}'
+GITHUB_REPO = f'astral-sh/{REPO}'
 GITHUB_SITE = f'https://github.com/{GITHUB_REPO}'
 LATEST_RELEASE = f'{GITHUB_SITE}/releases.atom'
 
