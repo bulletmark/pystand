@@ -7,18 +7,13 @@ https://github.com/astral-sh/python-build-standalone.
 '''
 from __future__ import annotations
 
-import json
 import os
 import platform
 import re
 import shlex
 import shutil
-import subprocess
 import sys
-import tarfile
 import time
-import urllib.parse
-import urllib.request
 from argparse import SUPPRESS, ArgumentParser, Namespace
 from collections import defaultdict
 from datetime import date, datetime, timedelta
@@ -26,9 +21,7 @@ from pathlib import Path
 from typing import Any, Iterable, Iterator
 
 import argcomplete
-import github
 import platformdirs
-import zstandard
 from packaging.version import parse as parse_version
 
 REPO = 'python-build-standalone'
@@ -78,10 +71,11 @@ def fmt(version, release) -> str:
     return f'{version} @ {release}'
 
 def get_json(file: Path) -> dict:
+    from json import load
     'Get JSON data from given file'
     try:
         with file.open() as fp:
-            return json.load(fp)
+            return load(fp)
     except Exception:
         pass
 
@@ -89,9 +83,10 @@ def get_json(file: Path) -> dict:
 
 def set_json(file: Path, data: dict) -> str | None:
     'Set JSON data to given file'
+    from json import dump
     try:
         with file.open('w') as fp:
-            json.dump(data, fp, indent=2)
+            dump(data, fp, indent=2)
     except Exception as e:
         return str(e)
 
@@ -108,12 +103,14 @@ def get_gh(args: Namespace) -> Any:
         return get_gh_handle
 
     if args.github_access_token:
-        auth = github.Auth.Token(args.github_access_token)
+        from github.Auth import Token
+        auth = Token(args.github_access_token)
     else:
         auth = None
 
     # Save this handle globally for future use
-    get_gh_handle = github.Github(auth=auth)  # type: ignore
+    from github import Github
+    get_gh_handle = Github(auth=auth)  # type: ignore
     return get_gh_handle
 
 def rm_path(path: Path) -> None:
@@ -127,6 +124,9 @@ def rm_path(path: Path) -> None:
 
 def unpack_zst(filename: str, extract_dir: str) -> None:
     'Unpack a zstandard compressed tar'
+    import tarfile
+
+    import zstandard
     with open(filename, 'rb') as compressed:
         dctx = zstandard.ZstdDecompressor()
         with dctx.stream_reader(compressed) as reader:
@@ -135,19 +135,21 @@ def unpack_zst(filename: str, extract_dir: str) -> None:
 
 def fetch(args: Namespace, release: str, url: str, tdir: Path) -> str | None:
     'Fetch and unpack a release file'
+    from urllib.parse import unquote, urlparse
+    from urllib.request import urlretrieve
     error = None
     tmpdir = tdir.with_name(f'{tdir.name}-tmp')
     rm_path(tmpdir)
     tmpdir.mkdir(parents=True)
 
-    filename_q = Path(urllib.parse.urlparse(url).path).name
-    filename = urllib.parse.unquote(filename_q)
+    filename_q = Path(urlparse(url).path).name
+    filename = unquote(filename_q)
     cache_file = args._downloads / release / filename
     cache_file.parent.mkdir(parents=True, exist_ok=True)
 
     if not cache_file.exists():
         try:
-            urllib.request.urlretrieve(url, cache_file)
+            urlretrieve(url, cache_file)
         except Exception as e:
             error = f'Failed to fetch "{url}": {e}'
 
@@ -279,8 +281,9 @@ def check_release_tag(release: str) -> str | None:
 def fetch_tags() -> Iterator[tuple[str, str]]:
     'Fetch the latest release tag from the GitHub release atom feed'
     import xml.etree.ElementTree as et
+    from urllib.request import urlopen
     try:
-        with urllib.request.urlopen(LATEST_RELEASE) as url:
+        with urlopen(LATEST_RELEASE) as url:
             data = et.parse(url).getroot()
     except Exception:
         sys.exit('Failed to fetch latest YYYYMMDD release atom file.')
@@ -349,7 +352,6 @@ def add_file(files: dict, tag: str, name: str, url: str) -> None:
 
 def get_release_files(args, tag, implementation: str | None = None) -> dict:
     'Return the release files for the given tag'
-    from github.GithubException import UnknownObjectException
     # Look for tag data in our release cache
     jfile = args._releases / tag
     if not (files := get_json(jfile)):
@@ -359,6 +361,7 @@ def get_release_files(args, tag, implementation: str | None = None) -> dict:
             return {}
 
         # Not in cache so fetch it (and also store in cache)
+        from github.GithubException import UnknownObjectException
         gh = get_gh(args)
         try:
             release = gh.get_repo(GITHUB_REPO).get_release(tag)
@@ -489,6 +492,8 @@ def remove(args: Namespace, version: str) -> None:
 
 def strip_binaries(vdir: Path, distribution: str) -> bool:
     'Strip binaries from files in a version directory'
+    from subprocess import DEVNULL, run
+
     # Only run the strip command on Linux hosts and for Linux distributions
     was_stripped = False
     if platform.system() == 'Linux' and '-linux-' in distribution:
@@ -501,7 +506,7 @@ def strip_binaries(vdir: Path, distribution: str) -> bool:
                 if not file.is_symlink() and file.is_file():
                     cmd = f'strip -p --strip-unneeded {file}'.split()
                     try:
-                        subprocess.run(cmd, stderr=subprocess.DEVNULL)
+                        run(cmd, stderr=DEVNULL)
                     except Exception:
                         pass
                     else:
