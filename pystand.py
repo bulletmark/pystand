@@ -562,7 +562,7 @@ def main() -> str | None:
     # Set up main/global arguments
     opt.add_argument('-D', '--distribution',
                      help=f'{REPO} distribution. '
-                     f'Default is "{distro_help} for this host.')
+                     f'Default is "{distro_help} for this host')
     opt.add_argument('-P', '--prefix-dir', default=prefix_dir,
                      help='specify prefix dir for storing '
                      'versions. Default is "%(default)s"')

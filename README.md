@@ -125,7 +125,7 @@ options:
   -D DISTRIBUTION, --distribution DISTRIBUTION
                         python-build-standalone distribution. Default is
                         "x86_64_v3-unknown-linux-gnu-install_only_stripped for
-                        this host.
+                        this host
   -P PREFIX_DIR, --prefix-dir PREFIX_DIR
                         specify prefix dir for storing versions. Default is
                         "$HOME/.local/share/pystand"
