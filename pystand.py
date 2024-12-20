@@ -14,9 +14,9 @@ import shlex
 import shutil
 import sys
 import time
-from argparse import SUPPRESS, ArgumentParser, Namespace
+from argparse import ArgumentParser, Namespace
 from collections import defaultdict
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Iterable, Iterator
 
@@ -27,7 +27,8 @@ from packaging.version import parse as parse_version
 REPO = 'python-build-standalone'
 GITHUB_REPO = f'astral-sh/{REPO}'
 GITHUB_SITE = f'https://github.com/{GITHUB_REPO}'
-LATEST_RELEASE = f'{GITHUB_SITE}/releases.atom'
+LATEST_RELEASES = f'{GITHUB_SITE}/releases.atom'
+LATEST_RELEASE_TAG = f'{GITHUB_SITE}/releases/latest'
 
 # Sample release tag for documentation/usage examples
 SAMPL_RELEASE = '20240415'
@@ -279,11 +280,11 @@ def check_release_tag(release: str) -> str | None:
 # because it is much faster than using the GitHub API, and has no
 # rate-limits.
 def fetch_tags() -> Iterator[tuple[str, str]]:
-    'Fetch the latest release tag from the GitHub release atom feed'
+    'Fetch the latest release tags from the GitHub release atom feed'
     import xml.etree.ElementTree as et
     from urllib.request import urlopen
     try:
-        with urlopen(LATEST_RELEASE) as url:
+        with urlopen(LATEST_RELEASES) as url:
             data = et.parse(url).getroot()
     except Exception:
         sys.exit('Failed to fetch latest YYYYMMDD release atom file.')
@@ -295,14 +296,16 @@ def fetch_tags() -> Iterator[tuple[str, str]]:
             if tl and dt:
                 yield tl, dt
 
-def fetch_tag_latest(args: Namespace) -> str:
-    now = datetime.now().astimezone()
-    for title, datestr in fetch_tags():
-        timestamp = datetime.fromisoformat(datestr)
-        if now - timestamp >= args._min_release_time:
-            return title
+def fetch_tag_latest() -> str:
+    'Fetch the latest release tag from the GitHub'
+    from urllib.request import urlopen
+    try:
+        with urlopen(LATEST_RELEASE_TAG) as url:
+            data = url.geturl()
+    except Exception:
+        sys.exit('Failed to fetch latest YYYYMMDD release tag.')
 
-    return ''
+    return data.split('/')[-1]
 
 def get_release_tag(args: Namespace) -> str:
     'Return the release tag, or latest if not specified'
@@ -317,7 +320,7 @@ def get_release_tag(args: Namespace) -> str:
         if time.time() < (stat.st_mtime + int(args.cache_minutes * 60)):
             return args._latest_release.read_text().strip()
 
-    if not (tag := fetch_tag_latest(args)):
+    if not (tag := fetch_tag_latest()):
         sys.exit('Latest YYYYMMDD release tag timestamp file is unavailable.')
 
     args._latest_release.write_text(tag + '\n')
@@ -584,8 +587,6 @@ def main() -> str | None:
                      help='do not strip downloaded binaries')
     opt.add_argument('-V', '--version', action='store_true',
                      help=f'just show {PROG} version')
-    opt.add_argument('--min-release-hours', default=6, type=int,
-                     help=SUPPRESS)
     cmd = opt.add_subparsers(title='Commands', dest='cmdname')
 
     # Add each command ..
@@ -654,7 +655,6 @@ def main() -> str | None:
     args._releases = cache_dir / 'releases'
     args._releases.mkdir(parents=True, exist_ok=True)
     args._latest_release = cache_dir / 'latest_release'
-    args._min_release_time = timedelta(hours=args.min_release_hours)
 
     result = args.func(args)
     purge_unused_releases(args)
@@ -901,16 +901,13 @@ class _show(COMMAND):
             args.parser.error('Can not specify --all with --list.')
 
         if args.list:
-            now = datetime.now().astimezone()
             for title, datestr in fetch_tags():
                 if args.re_match and not re.search(args.re_match, title):
                     continue
 
-                tdiff = now - datetime.fromisoformat(datestr)
-                if tdiff < args._min_release_time:
-                    print(title, '(pending)')
-                else:
-                    print(title)
+                dts = datetime.fromisoformat(datestr).astimezone().isoformat(
+                        sep='_', timespec='minutes')
+                print(title, dts)
 
             return
 
