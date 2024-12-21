@@ -10,8 +10,8 @@ provided:
 |Command  |Description                                                           |
 |---------|----------------------------------------------------------------------|
 |`install`|Install one or more versions from a python-build-standalone release   |
-|`update` |Update one, more, or all versions to another release                  |
-|`remove` |Remove/uninstall one, more, or all versions                           |
+|`update` (or `upgrade`) |Update one, more, or all versions to another release   |
+|`remove` (or `uninstall`) |Remove/uninstall one, more, or all versions          |
 |`list`   |List installed versions and show which have an update available       |
 |`show`   |Show versions available from a release                                |
 |`path`   |Show path prefix to installed version base directory                  |
