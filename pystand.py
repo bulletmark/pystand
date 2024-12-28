@@ -460,6 +460,30 @@ def purge_unused_releases(args: Namespace) -> None:
         if path.name not in keep:
             rm_path(path)
 
+def show_list(args: Namespace) -> None:
+    'Show a list of available releases'
+    releases = {r: d for r, d in fetch_tags()}
+    cached = set(p.name for p in args._releases.iterdir())
+    for release in sorted(cached.union(releases)):
+        if args.re_match and not re.search(args.re_match, release):
+            continue
+
+        if dt_str := releases.get(release):
+            dts = datetime.fromisoformat(dt_str).astimezone().isoformat(
+                    sep='_', timespec='minutes')
+        else:
+            dts = '......................'
+
+        if release in cached:
+            ddir = args._downloads / release
+            count = len(list(ddir.iterdir())) if ddir.exists() else 0
+            app = f' cached + {count} downloaded files' \
+                    if count > 0 else ' cached'
+        else:
+            app = ''
+
+        print(f'{release} {dts}{app}')
+
 class COMMAND:
     'Base class for all commands'
     commands = []
@@ -896,25 +920,18 @@ class _show(COMMAND):
                             'matching this regular expression pattern')
 
     @staticmethod
-    def run(args: Namespace) -> None:
+    def run(args: Namespace) -> str | None:
         if args.all and args.list:
             args.parser.error('Can not specify --all with --list.')
 
         if args.list:
-            for title, datestr in fetch_tags():
-                if args.re_match and not re.search(args.re_match, title):
-                    continue
-
-                dts = datetime.fromisoformat(datestr).astimezone().isoformat(
-                        sep='_', timespec='minutes')
-                print(title, dts)
-
-            return
+            show_list(args)
+            return None
 
         release = get_release_tag(args)
         files = get_release_files(args, release, 'cpython')
         if not files:
-            sys.exit(f'Error: release "{release}" not found.')
+            return f'Error: release "{release}" not found.'
 
         installed = {}
         for vdir in iter_versions(args):
