@@ -615,7 +615,7 @@ def main() -> str | None:
 
     # Add each command ..
     for cls in COMMAND.commands:
-        name = cls.__name__[1:]
+        name = cls.__name__[:-1]
 
         if hasattr(cls, 'doc'):
             desc = cls.doc.strip()
@@ -686,7 +686,7 @@ def main() -> str | None:
     return result
 
 @COMMAND.add
-class _install(COMMAND):
+class install_(COMMAND):
     doc = f'Install one or more versions from a {REPO} release.'
 
     @staticmethod
@@ -728,7 +728,7 @@ class _install(COMMAND):
             print(f'Version {fmt(version, release)} installed.')
 
 @COMMAND.add
-class _update(COMMAND):
+class update_(COMMAND):
     'Update one, more, or all versions to another release.'
     aliases = ['upgrade']
 
@@ -798,7 +798,7 @@ class _update(COMMAND):
                 remove(args, version)
 
 @COMMAND.add
-class _remove(COMMAND):
+class remove_(COMMAND):
     'Remove/uninstall one, more, or all versions.'
     aliases = ['uninstall']
 
@@ -831,7 +831,7 @@ class _remove(COMMAND):
                 print(f'Version {fmt(version, release)} removed.')
 
 @COMMAND.add
-class _list(COMMAND):
+class list_(COMMAND):
     'List installed versions and show which have an update available.'
     @staticmethod
     def init(parser: ArgumentParser) -> None:
@@ -896,7 +896,7 @@ class _list(COMMAND):
                     f'distribution="{distribution}"{app}')
 
 @COMMAND.add
-class _show(COMMAND):
+class show_(COMMAND):
     doc = f'''
     Show versions available from a release.
 
@@ -961,7 +961,7 @@ class _show(COMMAND):
                   'versions found in ' f'release "{release}".')
 
 @COMMAND.add
-class _path(COMMAND):
+class path_(COMMAND):
     'Show path prefix to installed version base directory.'
     @staticmethod
     def init(parser: ArgumentParser) -> None:
