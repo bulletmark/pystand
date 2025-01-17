@@ -82,9 +82,9 @@ $ uv venv -p $(pystand path 3.12) myenv
 # installed python 3.12:
 $ $(pystand path -p 3.12) -m venv myenv
 
-# Use pipx to install a package to be run with pystand installed python
+# Use uv tool to install a package to be run with pystand installed python
 # specific version 3.11.1:
-$ pipx install --python $(pystand path -p 3.11.1) cowsay
+$ uv tool install -p $(pystand path 3.11.1) cowsay
 ```
 
 See detailed usage information in the [Usage](#usage) section that
@@ -122,17 +122,17 @@ sh/python-build-standalone.
 
 options:
   -h, --help            show this help message and exit
-  -D DISTRIBUTION, --distribution DISTRIBUTION
+  -D, --distribution DISTRIBUTION
                         python-build-standalone distribution. Default is
                         "x86_64_v3-unknown-linux-gnu-install_only_stripped for
                         this host
-  -P PREFIX_DIR, --prefix-dir PREFIX_DIR
+  -P, --prefix-dir PREFIX_DIR
                         specify prefix dir for storing versions. Default is
                         "$HOME/.local/share/pystand"
-  -C CACHE_DIR, --cache-dir CACHE_DIR
+  -C, --cache-dir CACHE_DIR
                         specify cache dir for downloads. Default is
                         "$HOME/.cache/pystand"
-  -M CACHE_MINUTES, --cache-minutes CACHE_MINUTES
+  -M, --cache-minutes CACHE_MINUTES
                         cache latest YYYYMMDD release tag fetch for this many
                         minutes, before rechecking for latest. Default is 60
                         minutes
@@ -157,7 +157,7 @@ Commands:
     show                Show versions available from a release.
     path                Show path prefix to installed version base directory.
 
-Some commands offer aliases as shown in brackets above. Note you can set
+Some commands offer aliases as shown in parentheses above. Note you can set
 default starting global options in $HOME/.config/pystand-flags.conf.
 ```
 
@@ -176,7 +176,7 @@ positional arguments:
 
 options:
   -h, --help            show this help message and exit
-  -r RELEASE, --release RELEASE
+  -r, --release RELEASE
                         install from specified python-build-standalone
                         YYYYMMDD release (e.g. 20240415), default is latest
                         release
@@ -197,7 +197,7 @@ positional arguments:
 
 options:
   -h, --help            show this help message and exit
-  -r RELEASE, --release RELEASE
+  -r, --release RELEASE
                         update to specified YYYMMDD release (e.g. 20240415),
                         default is latest release
   -a, --all             update ALL versions
@@ -224,7 +224,7 @@ options:
   -a, --all             remove ALL versions
   --skip                skip the specified versions when removing all (only
                         can be specified with --all)
-  -r RELEASE, --release RELEASE
+  -r, --release RELEASE
                         only remove versions if from specified YYYMMDD release
                         (e.g. 20240415)
 
@@ -245,7 +245,7 @@ options:
   -h, --help            show this help message and exit
   -v, --verbose         explicitly report why a version is not eligible for
                         update
-  -r RELEASE, --release RELEASE
+  -r, --release RELEASE
                         use specified YYYYMMDD release (e.g. 20240415) for
                         verbose compare, default is latest release
 ```
@@ -266,7 +266,7 @@ positional arguments:
 options:
   -h, --help            show this help message and exit
   -l, --list            just list recent releases
-  -r RELEASE, --release RELEASE
+  -r, --release RELEASE
                         python-build-standalone YYYYMMDD release to show (e.g.
                         20240415), default is latest release
   -a, --all             show all available distributions for each version from
@@ -296,23 +296,24 @@ Python 3.8 or later is required. Arch Linux users can install [`pystand`
 from the AUR](https://aur.archlinux.org/packages/pystand) and skip this
 section.
 
-The easiest way to install [`pystand`][pystand] is to use [`pipx`][pipx]
-(or [`pipxu`][pipxu], or [`uv tool`][uvtool]).
+Note [pystand is on PyPI](https://pypi.org/project/pystand/) so the
+easiest way to install it is to use [`uv tool`][uvtool] (or
+[`pipx`][pipx] or [`pipxu`][pipxu]).
 
 ```sh
-$ pipx install pystand
+$ uv tool install pystand
 ```
 
 To upgrade:
 
 ```sh
-$ pipx upgrade pystand
+$ uv tool upgrade pystand
 ```
 
 To uninstall:
 
 ```sh
-$ pipx uninstall pystand
+$ uv tool uninstall pystand
 ```
 
 ## Extrapolation of Python Versions

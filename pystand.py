@@ -582,7 +582,7 @@ def main() -> str | None:
 
     # Parse arguments
     opt = ArgumentParser(description=__doc__,
-            epilog='Some commands offer aliases as shown in brackets above. '
+            epilog='Some commands offer aliases as shown in parentheses above. '
                 'Note you can set default starting global options in '
                 f'{CNFFILE}.')
 
