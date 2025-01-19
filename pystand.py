@@ -484,15 +484,6 @@ def show_list(args: Namespace) -> None:
 
         print(f'{release} {dts}{app}')
 
-class COMMAND:
-    'Base class for all commands'
-    commands = []
-
-    @classmethod
-    def add(cls, parent) -> None:
-        'Append parent command to internal list'
-        cls.commands.append(parent)
-
 def get_title(desc: str) -> str:
     'Return single title line from description'
     res = []
@@ -614,8 +605,12 @@ def main() -> str | None:
     cmd = opt.add_subparsers(title='Commands', dest='cmdname')
 
     # Add each command ..
-    for cls in COMMAND.commands:
-        name = cls.__name__[:-1]
+    for name in globals():
+        if not name[0].islower() or not name.endswith('_'):
+            continue
+
+        cls = globals()[name]
+        name = name[:-1]
 
         if hasattr(cls, 'doc'):
             desc = cls.doc.strip()
@@ -685,8 +680,7 @@ def main() -> str | None:
     update_version_symlinks(args)
     return result
 
-@COMMAND.add
-class install_(COMMAND):
+class install_:
     doc = f'Install one or more versions from a {REPO} release.'
 
     @staticmethod
@@ -727,8 +721,7 @@ class install_(COMMAND):
 
             print(f'Version {fmt(version, release)} installed.')
 
-@COMMAND.add
-class update_(COMMAND):
+class update_:
     'Update one, more, or all versions to another release.'
     aliases = ['upgrade']
 
@@ -797,8 +790,7 @@ class update_(COMMAND):
             if nextver != version and not args.keep:
                 remove(args, version)
 
-@COMMAND.add
-class remove_(COMMAND):
+class remove_:
     'Remove/uninstall one, more, or all versions.'
     aliases = ['uninstall']
 
@@ -830,8 +822,7 @@ class remove_(COMMAND):
                 remove(args, version)
                 print(f'Version {fmt(version, release)} removed.')
 
-@COMMAND.add
-class list_(COMMAND):
+class list_:
     'List installed versions and show which have an update available.'
     @staticmethod
     def init(parser: ArgumentParser) -> None:
@@ -895,8 +886,7 @@ class list_(COMMAND):
             print(f'{fmt(version, release)}{upd} '
                     f'distribution="{distribution}"{app}')
 
-@COMMAND.add
-class show_(COMMAND):
+class show_:
     doc = f'''
     Show versions available from a release.
 
@@ -960,8 +950,7 @@ class show_(COMMAND):
             print(f'Warning: no distribution="{args._distribution}" '
                   'versions found in ' f'release "{release}".')
 
-@COMMAND.add
-class path_(COMMAND):
+class path_:
     'Show path prefix to installed version base directory.'
     @staticmethod
     def init(parser: ArgumentParser) -> None:
