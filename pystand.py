@@ -680,6 +680,7 @@ def main() -> str | None:
     update_version_symlinks(args)
     return result
 
+# COMMAND
 class install_:
     doc = f'Install one or more versions from a {REPO} release.'
 
@@ -721,6 +722,7 @@ class install_:
 
             print(f'Version {fmt(version, release)} installed.')
 
+# COMMAND
 class update_:
     'Update one, more, or all versions to another release.'
     aliases = ['upgrade']
@@ -790,6 +792,7 @@ class update_:
             if nextver != version and not args.keep:
                 remove(args, version)
 
+# COMMAND
 class remove_:
     'Remove/uninstall one, more, or all versions.'
     aliases = ['uninstall']
@@ -822,6 +825,7 @@ class remove_:
                 remove(args, version)
                 print(f'Version {fmt(version, release)} removed.')
 
+# COMMAND
 class list_:
     'List installed versions and show which have an update available.'
     @staticmethod
@@ -886,6 +890,7 @@ class list_:
             print(f'{fmt(version, release)}{upd} '
                     f'distribution="{distribution}"{app}')
 
+# COMMAND
 class show_:
     doc = f'''
     Show versions available from a release.
@@ -950,6 +955,7 @@ class show_:
             print(f'Warning: no distribution="{args._distribution}" '
                   'versions found in ' f'release "{release}".')
 
+# COMMAND
 class path_:
     'Show path prefix to installed version base directory.'
     @staticmethod
