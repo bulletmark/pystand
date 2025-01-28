@@ -1,10 +1,11 @@
 #!/usr/bin/python3
 # PYTHON_ARGCOMPLETE_OK
-'''
+"""
 Command line tool to download, install, and update pre-built Python
 versions from the python-build-standalone project at
 https://github.com/astral-sh/python-build-standalone.
-'''
+"""
+
 from __future__ import annotations
 
 import os
@@ -44,22 +45,25 @@ DISTRIBUTIONS = {
     ('Linux', 'armv8l'): 'armv7-unknown-linux-gnueabihf-install_only_stripped',
     ('Darwin', 'x86_64'): 'x86_64-apple-darwin-install_only_stripped',
     ('Darwin', 'aarch64'): 'aarch64-apple-darwin-install_only_stripped',
-    ('Windows', 'x86_64'):
-        'x86_64-pc-windows-msvc-shared-install_only_stripped',
+    ('Windows', 'x86_64'): 'x86_64-pc-windows-msvc-shared-install_only_stripped',
     ('Windows', 'i686'): 'i686-pc-windows-msvc-shared-install_only_stripped',
 }
 
+
 def is_admin() -> bool:
-    'Check if we are running as root'
+    "Check if we are running as root"
     if platform.system() == 'Windows':
         import ctypes
+
         return ctypes.windll.shell32.IsUserAnAdmin() != 0  # type: ignore
 
     return os.geteuid() == 0
 
+
 def get_version() -> str:
-    'Return the version of this package'
+    "Return the version of this package"
     from importlib.metadata import version
+
     try:
         ver = version(PROG)
     except Exception:
@@ -67,12 +71,15 @@ def get_version() -> str:
 
     return ver
 
+
 def fmt(version, release) -> str:
-    'Return a formatted release version string'
+    "Return a formatted release version string"
     return f'{version} @ {release}'
+
 
 def get_json(file: Path) -> dict:
     from json import load
+
     'Get JSON data from given file'
     try:
         with file.open() as fp:
@@ -82,9 +89,11 @@ def get_json(file: Path) -> dict:
 
     return {}
 
+
 def set_json(file: Path, data: dict) -> str | None:
-    'Set JSON data to given file'
+    "Set JSON data to given file"
     from json import dump
+
     try:
         with file.open('w') as fp:
             dump(data, fp, indent=2)
@@ -93,11 +102,13 @@ def set_json(file: Path, data: dict) -> str | None:
 
     return None
 
+
 # The gh handle is an opaque github instance handle
 get_gh_handle = None
 
+
 def get_gh(args: Namespace) -> Any:
-    'Return a GitHub handle'
+    "Return a GitHub handle"
     # The gh handle is a global to lazily create it only if/when needed
     global get_gh_handle
     if get_gh_handle:
@@ -105,17 +116,20 @@ def get_gh(args: Namespace) -> Any:
 
     if args.github_access_token:
         from github.Auth import Token
+
         auth = Token(args.github_access_token)
     else:
         auth = None
 
     # Save this handle globally for future use
     from github import Github
+
     get_gh_handle = Github(auth=auth)  # type: ignore
     return get_gh_handle
 
+
 def rm_path(path: Path) -> None:
-    'Remove the given path'
+    "Remove the given path"
     if path.is_symlink():
         path.unlink()
     elif path.is_dir():
@@ -123,21 +137,25 @@ def rm_path(path: Path) -> None:
     elif path.exists():
         path.unlink()
 
+
 def unpack_zst(filename: str, extract_dir: str) -> None:
-    'Unpack a zstandard compressed tar'
+    "Unpack a zstandard compressed tar"
     import tarfile
 
     import zstandard
+
     with open(filename, 'rb') as compressed:
         dctx = zstandard.ZstdDecompressor()
         with dctx.stream_reader(compressed) as reader:
             with tarfile.open(fileobj=reader, mode='r|') as tar:
                 tar.extractall(path=extract_dir)
 
+
 def fetch(args: Namespace, release: str, url: str, tdir: Path) -> str | None:
-    'Fetch and unpack a release file'
+    "Fetch and unpack a release file"
     from urllib.parse import unquote, urlparse
     from urllib.request import urlretrieve
+
     error = None
     tmpdir = tdir.with_name(f'{tdir.name}-tmp')
     rm_path(tmpdir)
@@ -184,18 +202,20 @@ def fetch(args: Namespace, release: str, url: str, tdir: Path) -> str | None:
     rm_path(tmpdir)
     return error
 
+
 def is_release_version(version: str) -> bool:
-    'Check if a string is a formal Python release tag'
+    "Check if a string is a formal Python release tag"
     return version.replace('.', '').isdigit()
 
+
 class VersionMatcher:
-    'Match a version string to a list of versions'
+    "Match a version string to a list of versions"
+
     def __init__(self, seq: Iterable[str]) -> None:
         self.seq = sorted(seq, key=parse_version, reverse=True)
 
-    def match(self, version: str | None, *,
-              upgrade: bool = False) -> str | None:
-        'Return full version string given a [possibly] part version prefix'
+    def match(self, version: str | None, *, upgrade: bool = False) -> str | None:
+        "Return full version string given a [possibly] part version prefix"
 
         # If no version specified, return the latest release version
         if not version:
@@ -222,25 +242,31 @@ class VersionMatcher:
         # release.
         for full_version in self.seq:
             if full_version.startswith(version):
-                if not upgrade or not is_release \
-                        or is_release_version(full_version):
+                if not upgrade or not is_release or is_release_version(full_version):
                     return full_version
 
         return None
 
+
 def iter_versions(args: Namespace) -> Iterator[Path]:
-    'Iterate over all version dirs'
+    "Iterate over all version dirs"
     for f in args._versions.iterdir():
-        if f.is_dir() and not f.is_symlink() \
-                and f.name[0] != '.' and f.name[0].isdigit():
+        if (
+            f.is_dir()
+            and not f.is_symlink()
+            and f.name[0] != '.'
+            and f.name[0].isdigit()
+        ):
             yield f
 
+
 def get_version_names(args: Namespace) -> list[str]:
-    'Return a list of validated version names based on command line args'
+    "Return a list of validated version names based on command line args"
     if args.all:
         if not args.skip and args.version:
-            args.parser.error('Can not specify versions with '
-                            '--all unless also specifying --skip.')
+            args.parser.error(
+                'Can not specify versions with --all unless also specifying --skip.'
+            )
     else:
         if args.skip:
             args.parser.error('--skip can only be specified with --all.')
@@ -256,16 +282,16 @@ def get_version_names(args: Namespace) -> list[str]:
 
     given = set(versions)
 
-    if (unknown := given - all_names):
+    if unknown := given - all_names:
         s = 's' if len(unknown) > 1 else ''
         unknowns = [f'"{u}"' for u in unknown]
         sys.exit(f'Error: version{s} {", ".join(unknowns)} not found.')
 
-    return sorted(all_names - given, key=parse_version) \
-            if args.all else versions
+    return sorted(all_names - given, key=parse_version) if args.all else versions
+
 
 def check_release_tag(release: str) -> str | None:
-    'Check the specified release tag is valid'
+    "Check the specified release tag is valid"
     if not release.isdigit() or len(release) != len(SAMPL_RELEASE):
         return 'Release must be a YYYYMMDD string.'
 
@@ -276,13 +302,15 @@ def check_release_tag(release: str) -> str | None:
 
     return None
 
+
 # Note we use a simple direct URL fetch to get the latest tag info
 # because it is much faster than using the GitHub API, and has no
 # rate-limits.
 def fetch_tags() -> Iterator[tuple[str, str]]:
-    'Fetch the latest release tags from the GitHub release atom feed'
+    "Fetch the latest release tags from the GitHub release atom feed"
     import xml.etree.ElementTree as et
     from urllib.request import urlopen
+
     try:
         with urlopen(LATEST_RELEASES) as url:
             data = et.parse(url).getroot()
@@ -296,9 +324,11 @@ def fetch_tags() -> Iterator[tuple[str, str]]:
             if tl and dt:
                 yield tl, dt
 
+
 def fetch_tag_latest() -> str:
-    'Fetch the latest release tag from the GitHub'
+    "Fetch the latest release tag from the GitHub"
     from urllib.request import urlopen
+
     try:
         with urlopen(LATEST_RELEASE_TAG) as url:
             data = url.geturl()
@@ -307,8 +337,9 @@ def fetch_tag_latest() -> str:
 
     return data.split('/')[-1]
 
+
 def get_release_tag(args: Namespace) -> str:
-    'Return the release tag, or latest if not specified'
+    "Return the release tag, or latest if not specified"
     if release := args.release:
         if err := check_release_tag(release):
             sys.exit(err)
@@ -326,8 +357,9 @@ def get_release_tag(args: Namespace) -> str:
     args._latest_release.write_text(tag + '\n')
     return tag
 
+
 def add_file(files: dict, tag: str, name: str, url: str) -> None:
-    'Extract the implementation, version, and architecture from a filename'
+    "Extract the implementation, version, and architecture from a filename"
     if name.endswith('.tar.zst'):
         name = name[:-8]
     elif name.endswith('.tar.gz'):
@@ -353,18 +385,19 @@ def add_file(files: dict, tag: str, name: str, url: str) -> None:
 
     vers[ver][arch] = url
 
+
 def get_release_files(args, tag, implementation: str | None = None) -> dict:
-    'Return the release files for the given tag'
+    "Return the release files for the given tag"
     # Look for tag data in our release cache
     jfile = args._releases / tag
     if not (files := get_json(jfile)):
-
         # May have read this release before but it has no assets
         if jfile.exists():
             return {}
 
         # Not in cache so fetch it (and also store in cache)
         from github.GithubException import UnknownObjectException
+
         gh = get_gh(args)
         try:
             release = gh.get_repo(GITHUB_REPO).get_release(tag)
@@ -384,8 +417,9 @@ def get_release_files(args, tag, implementation: str | None = None) -> dict:
 
     return files.get(implementation, {}) if implementation else files
 
+
 def update_version_symlinks(args: Namespace) -> None:
-    'Create/update symlinks pointing to latest version'
+    "Create/update symlinks pointing to latest version"
     base = args._versions
     if not base.exists():
         return
@@ -435,11 +469,13 @@ def update_version_symlinks(args: Namespace) -> None:
         if not old_tgt or old_tgt != tgt:
             (base / name).symlink_to(tgt, target_is_directory=True)
 
+
 def purge_unused_releases(args: Namespace) -> None:
-    'Purge old releases that are no longer needed and have expired'
+    "Purge old releases that are no longer needed and have expired"
     # Want to keep releases for versions that we currently have installed
-    keep = {r for v in iter_versions(args)
-            if (r := get_json(v / args._data).get('release'))}
+    keep = {
+        r for v in iter_versions(args) if (r := get_json(v / args._data).get('release'))
+    }
 
     # Add current release to keep list (even if not currently installed)
     if args._latest_release.exists():
@@ -460,8 +496,9 @@ def purge_unused_releases(args: Namespace) -> None:
         if path.name not in keep:
             rm_path(path)
 
+
 def show_list(args: Namespace) -> None:
-    'Show a list of available releases'
+    "Show a list of available releases"
     releases = {r: d for r, d in fetch_tags()}
     cached = set(p.name for p in args._releases.iterdir())
     for release in sorted(cached.union(releases)):
@@ -469,34 +506,38 @@ def show_list(args: Namespace) -> None:
             continue
 
         if dt_str := releases.get(release):
-            dts = datetime.fromisoformat(dt_str).astimezone().isoformat(
-                    sep='_', timespec='minutes')
+            dts = (
+                datetime.fromisoformat(dt_str)
+                .astimezone()
+                .isoformat(sep='_', timespec='minutes')
+            )
         else:
             dts = '......................'
 
         if release in cached:
             ddir = args._downloads / release
             count = len(list(ddir.iterdir())) if ddir.exists() else 0
-            app = f' cached + {count} downloaded files' \
-                    if count > 0 else ' cached'
+            app = f' cached + {count} downloaded files' if count > 0 else ' cached'
         else:
             app = ''
 
         print(f'{release} {dts}{app}')
 
+
 def get_title(desc: str) -> str:
-    'Return single title line from description'
+    "Return single title line from description"
     res = []
     for line in desc.splitlines():
         line = line.strip()
         res.append(line)
         if line.endswith('.'):
-            return ' '. join(res)
+            return ' '.join(res)
 
     sys.exit('Must end description with a full stop.')
 
+
 def remove(args: Namespace, version: str) -> None:
-    'Remove a version'
+    "Remove a version"
     vdir = args._versions / version
     if not vdir.exists():
         return
@@ -508,8 +549,9 @@ def remove(args: Namespace, version: str) -> None:
 
     shutil.rmtree(vdir)
 
+
 def strip_binaries(vdir: Path, distribution: str) -> bool:
-    'Strip binaries from files in a version directory'
+    "Strip binaries from files in a version directory"
     from subprocess import DEVNULL, run
 
     # Only run the strip command on Linux hosts and for Linux distributions
@@ -532,14 +574,17 @@ def strip_binaries(vdir: Path, distribution: str) -> bool:
 
     return was_stripped
 
-def install(args: Namespace, vdir: Path, release: str, distribution: str,
-            files: dict) -> str | None:
-    'Install a version'
+
+def install(
+    args: Namespace, vdir: Path, release: str, distribution: str, files: dict
+) -> str | None:
+    "Install a version"
     version = vdir.name
 
     if not (url := files[version].get(distribution)):
-        return f'Arch "{distribution}" not found for release '\
-                f'{release} version {version}.'
+        return (
+            f'Arch "{distribution}" not found for release {release} version {version}.'
+        )
 
     tmpdir = args._versions / f'.{version}-tmp'
     rm_path(tmpdir)
@@ -551,7 +596,7 @@ def install(args: Namespace, vdir: Path, release: str, distribution: str,
         if not args.no_strip and strip_binaries(tmpdir, distribution):
             data['stripped'] = 'true'
 
-        if (error := set_json(tmpdir / args._data, data)):
+        if error := set_json(tmpdir / args._data, data):
             error = f'Failed to write {version} data file: {error}'
 
     if error:
@@ -562,8 +607,9 @@ def install(args: Namespace, vdir: Path, release: str, distribution: str,
 
     return error
 
+
 def main() -> str | None:
-    'Main code'
+    "Main code"
     distro_default = DISTRIBUTIONS.get((platform.system(), platform.machine()))
     distro_help = distro_default or '?unknown?'
 
@@ -572,36 +618,58 @@ def main() -> str | None:
     cache_dir = platformdirs.user_cache_path() / PROG
 
     # Parse arguments
-    opt = ArgumentParser(description=__doc__,
-            epilog='Some commands offer aliases as shown in parentheses above. '
-                'Note you can set default starting global options in '
-                f'{CNFFILE}.')
+    opt = ArgumentParser(
+        description=__doc__,
+        epilog='Some commands offer aliases as shown in parentheses above. '
+        'Note you can set default starting global options in '
+        f'{CNFFILE}.',
+    )
 
     # Set up main/global arguments
-    opt.add_argument('-D', '--distribution',
-                     help=f'{REPO} distribution. '
-                     f'Default is "{distro_help} for this host')
-    opt.add_argument('-P', '--prefix-dir', default=prefix_dir,
-                     help='specify prefix dir for storing '
-                     'versions. Default is "%(default)s"')
-    opt.add_argument('-C', '--cache-dir', default=str(cache_dir),
-                     help='specify cache dir for downloads. '
-                     'Default is "%(default)s"')
-    opt.add_argument('-M', '--cache-minutes', default=60, type=float,
-                     help='cache latest YYYYMMDD release tag fetch for this '
-                     'many minutes, before rechecking for latest. '
-                     'Default is %(default)d minutes')
-    opt.add_argument('--purge-days', default=90, type=int,
-                     help='cache YYYYMMDD release file lists and downloads for '
-                     'this number of days after last version referencing that '
-                     'release is removed. Default is %(default)d days')
-    opt.add_argument('--github-access-token',
-                     help='optional Github access token. Can specify to reduce '
-                     'rate limiting.')
-    opt.add_argument('--no-strip', action='store_true',
-                     help='do not strip downloaded binaries')
-    opt.add_argument('-V', '--version', action='store_true',
-                     help=f'just show {PROG} version')
+    opt.add_argument(
+        '-D',
+        '--distribution',
+        help=f'{REPO} distribution. Default is "{distro_help} for this host',
+    )
+    opt.add_argument(
+        '-P',
+        '--prefix-dir',
+        default=prefix_dir,
+        help='specify prefix dir for storing versions. Default is "%(default)s"',
+    )
+    opt.add_argument(
+        '-C',
+        '--cache-dir',
+        default=str(cache_dir),
+        help='specify cache dir for downloads. Default is "%(default)s"',
+    )
+    opt.add_argument(
+        '-M',
+        '--cache-minutes',
+        default=60,
+        type=float,
+        help='cache latest YYYYMMDD release tag fetch for this '
+        'many minutes, before rechecking for latest. '
+        'Default is %(default)d minutes',
+    )
+    opt.add_argument(
+        '--purge-days',
+        default=90,
+        type=int,
+        help='cache YYYYMMDD release file lists and downloads for '
+        'this number of days after last version referencing that '
+        'release is removed. Default is %(default)d days',
+    )
+    opt.add_argument(
+        '--github-access-token',
+        help='optional Github access token. Can specify to reduce rate limiting.',
+    )
+    opt.add_argument(
+        '--no-strip', action='store_true', help='do not strip downloaded binaries'
+    )
+    opt.add_argument(
+        '-V', '--version', action='store_true', help=f'just show {PROG} version'
+    )
     cmd = opt.add_subparsers(title='Commands', dest='cmdname')
 
     # Add each command ..
@@ -621,8 +689,7 @@ def main() -> str | None:
 
         aliases = cls.aliases if hasattr(cls, 'aliases') else []
         title = get_title(desc)
-        cmdopt = cmd.add_parser(name, description=desc, help=title,
-                                aliases=aliases)
+        cmdopt = cmd.add_parser(name, description=desc, help=title, aliases=aliases)
 
         # Set up this commands own arguments, if it has any
         if hasattr(cls, 'init'):
@@ -656,8 +723,10 @@ def main() -> str | None:
 
     distribution = args.distribution or distro_default
     if not distribution:
-        sys.exit('Unknown system + machine distribution. Please specify '
-                'using -D/--distribution option.')
+        sys.exit(
+            'Unknown system + machine distribution. Please specify '
+            'using -D/--distribution option.'
+        )
 
     # Keep some useful info in the namespace passed to the command
     prefix_dir = Path(args.prefix_dir).expanduser().resolve()
@@ -680,23 +749,35 @@ def main() -> str | None:
     update_version_symlinks(args)
     return result
 
+
 # COMMAND
 class install_:
     doc = f'Install one or more versions from a {REPO} release.'
 
     @staticmethod
     def init(parser: ArgumentParser) -> None:
-        parser.add_argument('-r', '--release',
-                            help=f'install from specified {REPO} '
-                            f'YYYYMMDD release (e.g. {SAMPL_RELEASE}), '
-                            'default is latest release')
-        parser.add_argument('-f', '--force', action='store_true',
-                            help='force install even if already installed')
-        parser.add_argument('-s', '--include-source', action='store_true',
-                            help='also install source files if available in '
-                            'distribution download')
-        parser.add_argument('version', nargs='+',
-                            help='version to install. E.g. 3.12 or 3.12.3')
+        parser.add_argument(
+            '-r',
+            '--release',
+            help=f'install from specified {REPO} '
+            f'YYYYMMDD release (e.g. {SAMPL_RELEASE}), '
+            'default is latest release',
+        )
+        parser.add_argument(
+            '-f',
+            '--force',
+            action='store_true',
+            help='force install even if already installed',
+        )
+        parser.add_argument(
+            '-s',
+            '--include-source',
+            action='store_true',
+            help='also install source files if available in distribution download',
+        )
+        parser.add_argument(
+            'version', nargs='+', help='version to install. E.g. 3.12 or 3.12.3'
+        )
 
     @staticmethod
     def run(args: Namespace) -> str | None:
@@ -722,27 +803,40 @@ class install_:
 
             print(f'Version {fmt(version, release)} installed.')
 
+
 # COMMAND
 class update_:
-    'Update one, more, or all versions to another release.'
+    "Update one, more, or all versions to another release."
+
     aliases = ['upgrade']
 
     @staticmethod
     def init(parser: ArgumentParser) -> None:
-        parser.add_argument('-r', '--release',
-                            help='update to specified YYYMMDD release (e.g. '
-                            f'{SAMPL_RELEASE}), default is latest release')
-        parser.add_argument('-a', '--all', action='store_true',
-                            help='update ALL versions')
-        parser.add_argument('--skip', action='store_true',
-                            help='skip the specified versions when '
-                            'updating all (only can be specified with --all)')
-        parser.add_argument('-k', '--keep', action='store_true',
-                            help='keep old version after updating (but only '
-                            'if different version number)')
-        parser.add_argument('version', nargs='*',
-                            help='version to update (or to skip for '
-                            '--all --skip)')
+        parser.add_argument(
+            '-r',
+            '--release',
+            help='update to specified YYYMMDD release (e.g. '
+            f'{SAMPL_RELEASE}), default is latest release',
+        )
+        parser.add_argument(
+            '-a', '--all', action='store_true', help='update ALL versions'
+        )
+        parser.add_argument(
+            '--skip',
+            action='store_true',
+            help='skip the specified versions when '
+            'updating all (only can be specified with --all)',
+        )
+        parser.add_argument(
+            '-k',
+            '--keep',
+            action='store_true',
+            help='keep old version after updating (but only '
+            'if different version number)',
+        )
+        parser.add_argument(
+            'version', nargs='*', help='version to update (or to skip for --all --skip)'
+        )
 
     @staticmethod
     def run(args: Namespace) -> str | None:
@@ -768,54 +862,66 @@ class update_:
                 continue
 
             if nextver == version and args.keep:
-                print(f'Error: {fmt(version, release)} would not be kept '
-                      f'if update to {fmt(nextver, release_target)} '
-                      f'distribution="{distribution}"', file=sys.stderr)
+                print(
+                    f'Error: {fmt(version, release)} would not be kept '
+                    f'if update to {fmt(nextver, release_target)} '
+                    f'distribution="{distribution}"',
+                    file=sys.stderr,
+                )
                 continue
 
             new_vdir = args._versions / nextver
             if nextver != version and new_vdir.exists():
                 continue
 
-            print(f'{fmt(version, release)} updating to '
-                  f'{fmt(nextver, release_target)} '
-                  f'distribution="{distribution}" ..')
+            print(
+                f'{fmt(version, release)} updating to '
+                f'{fmt(nextver, release_target)} '
+                f'distribution="{distribution}" ..'
+            )
 
             # If the source was originally included, then include it in
             # the update.
             args.include_source = (vdir / 'src').is_dir()
 
-            if error := install(args, new_vdir, release_target, distribution,
-                                files):
+            if error := install(args, new_vdir, release_target, distribution, files):
                 return error
 
             if nextver != version and not args.keep:
                 remove(args, version)
 
+
 # COMMAND
 class remove_:
-    'Remove/uninstall one, more, or all versions.'
+    "Remove/uninstall one, more, or all versions."
+
     aliases = ['uninstall']
 
     @staticmethod
     def init(parser: ArgumentParser) -> None:
-        parser.add_argument('-a', '--all', action='store_true',
-                            help='remove ALL versions')
-        parser.add_argument('--skip', action='store_true',
-                            help='skip the specified versions when '
-                            'removing all (only can be specified with --all)')
-        parser.add_argument('-r', '--release',
-                            help='only remove versions if from specified '
-                            f'YYYMMDD release (e.g. {SAMPL_RELEASE})')
-        parser.add_argument('version', nargs='*',
-                            help='version to remove (or to skip for '
-                            '--all --skip)')
+        parser.add_argument(
+            '-a', '--all', action='store_true', help='remove ALL versions'
+        )
+        parser.add_argument(
+            '--skip',
+            action='store_true',
+            help='skip the specified versions when '
+            'removing all (only can be specified with --all)',
+        )
+        parser.add_argument(
+            '-r',
+            '--release',
+            help='only remove versions if from specified '
+            f'YYYMMDD release (e.g. {SAMPL_RELEASE})',
+        )
+        parser.add_argument(
+            'version', nargs='*', help='version to remove (or to skip for --all --skip)'
+        )
 
     @staticmethod
     def run(args: Namespace) -> str | None:
         release_del = args.release
-        if release_del and \
-                (err := check_release_tag(release_del)):
+        if release_del and (err := check_release_tag(release_del)):
             return err
 
         for version in get_version_names(args):
@@ -825,20 +931,29 @@ class remove_:
                 remove(args, version)
                 print(f'Version {fmt(version, release)} removed.')
 
+
 # COMMAND
 class list_:
-    'List installed versions and show which have an update available.'
+    "List installed versions and show which have an update available."
+
     @staticmethod
     def init(parser: ArgumentParser) -> None:
-        parser.add_argument('-v', '--verbose', action='store_true',
-                            help='explicitly report why a version is '
-                            'not eligible for update')
-        parser.add_argument('-r', '--release',
-                            help='use specified YYYYMMDD release '
-                            f'(e.g. {SAMPL_RELEASE}) for verbose compare, '
-                            'default is latest release')
-        parser.add_argument('version', nargs='*',
-                            help='only list specified version, else all')
+        parser.add_argument(
+            '-v',
+            '--verbose',
+            action='store_true',
+            help='explicitly report why a version is not eligible for update',
+        )
+        parser.add_argument(
+            '-r',
+            '--release',
+            help='use specified YYYYMMDD release '
+            f'(e.g. {SAMPL_RELEASE}) for verbose compare, '
+            'default is latest release',
+        )
+        parser.add_argument(
+            'version', nargs='*', help='only list specified version, else all'
+        )
 
     @staticmethod
     def run(args: Namespace) -> str | None:
@@ -863,56 +978,72 @@ class list_:
                 nextver = matcher.match(version, upgrade=True)
                 if not nextver:
                     if args.verbose:
-                        app = ' not eligible for update because '\
-                                f'release {release_target} does not provide '\
-                                'this version.'
+                        app = (
+                            ' not eligible for update because '
+                            f'release {release_target} does not provide '
+                            'this version.'
+                        )
                 else:
                     new_vdir = args._versions / nextver
                     if nextver != version and new_vdir.exists():
                         if args.verbose:
-                            nrelease = get_json(
-                                    new_vdir / args._data).get('release', '?')
-                            app = f' not eligible for '\
-                                    f'update because {fmt(nextver, nrelease)} '\
-                                    'is already installed.'
+                            nrelease = get_json(new_vdir / args._data).get(
+                                'release', '?'
+                            )
+                            app = (
+                                f' not eligible for '
+                                f'update because {fmt(nextver, nrelease)} '
+                                'is already installed.'
+                            )
                     else:
                         # May not be updatable if newer release does not support
                         # this same distribution anymore
                         if nextver and distribution in files.get(nextver, {}):
-                            upd = ' updatable to '\
-                                    f'{fmt(nextver, release_target)}'
+                            upd = f' updatable to {fmt(nextver, release_target)}'
                         elif args.verbose:
-                            app = ' not eligible for update because '\
-                                    f'{fmt(nextver, release_target)} does '\
-                                    'not provide '\
-                                    f'distribution="{distribution}".'
+                            app = (
+                                ' not eligible for update because '
+                                f'{fmt(nextver, release_target)} does '
+                                'not provide '
+                                f'distribution="{distribution}".'
+                            )
 
-            print(f'{fmt(version, release)}{upd} '
-                    f'distribution="{distribution}"{app}')
+            print(f'{fmt(version, release)}{upd} distribution="{distribution}"{app}')
+
 
 # COMMAND
 class show_:
-    doc = f'''
+    doc = f"""
     Show versions available from a release.
 
     View available releases and their distributions at
     {GITHUB_SITE}/releases.
-    '''
+    """
 
     @staticmethod
     def init(parser: ArgumentParser) -> None:
         group = parser.add_mutually_exclusive_group()
-        group.add_argument('-l', '--list', action='store_true',
-                           help='just list recent releases')
-        group.add_argument('-r', '--release',
-                           help=f'{REPO} YYYYMMDD release to show (e.g. '
-                           f'{SAMPL_RELEASE}), default is latest release')
-        parser.add_argument('-a', '--all', action='store_true',
-                            help='show all available distributions for '
-                            'each version from the release')
-        parser.add_argument('re_match', nargs='?',
-                            help='show only versions+distributions '
-                            'matching this regular expression pattern')
+        group.add_argument(
+            '-l', '--list', action='store_true', help='just list recent releases'
+        )
+        group.add_argument(
+            '-r',
+            '--release',
+            help=f'{REPO} YYYYMMDD release to show (e.g. '
+            f'{SAMPL_RELEASE}), default is latest release',
+        )
+        parser.add_argument(
+            '-a',
+            '--all',
+            action='store_true',
+            help='show all available distributions for each version from the release',
+        )
+        parser.add_argument(
+            're_match',
+            nargs='?',
+            help='show only versions+distributions '
+            'matching this regular expression pattern',
+        )
 
     @staticmethod
     def run(args: Namespace) -> str | None:
@@ -931,44 +1062,56 @@ class show_:
         installed = {}
         for vdir in iter_versions(args):
             data = get_json(vdir / args._data)
-            if data.get('release') == release and \
-                    (distro := data.get('distribution')):
+            if data.get('release') == release and (distro := data.get('distribution')):
                 installed[vdir.name] = distro
 
         installable = False
         for version in sorted(files, key=parse_version):
             installed_distribution = installed.get(version)
             for distribution in files[version]:
-                app = ' (installed)' \
-                        if distribution == installed_distribution else ''
-                if args.all or app \
-                        or distribution == args._distribution:
+                app = ' (installed)' if distribution == installed_distribution else ''
+                if args.all or app or distribution == args._distribution:
                     if distribution == args._distribution:
                         installable = True
 
-                    if not args.re_match or \
-                            re.search(args.re_match,
-                                      f'{version}+{distribution}'):
-                        print(f'{fmt(version, release)} '
-                            f'distribution="{distribution}"{app}')
+                    if not args.re_match or re.search(
+                        args.re_match, f'{version}+{distribution}'
+                    ):
+                        print(
+                            f'{fmt(version, release)} '
+                            f'distribution="{distribution}"{app}'
+                        )
         if not installable:
-            print(f'Warning: no distribution="{args._distribution}" '
-                  'versions found in ' f'release "{release}".')
+            print(
+                f'Warning: no distribution="{args._distribution}" '
+                'versions found in '
+                f'release "{release}".'
+            )
+
 
 # COMMAND
 class path_:
-    'Show path prefix to installed version base directory.'
+    "Show path prefix to installed version base directory."
+
     @staticmethod
     def init(parser: ArgumentParser) -> None:
-        parser.add_argument('-p', '--python-path', action='store_true',
-                            help='add path to python executable')
-        parser.add_argument('-r', '--resolve', action='store_true',
-                            help='fully resolve given version')
+        parser.add_argument(
+            '-p',
+            '--python-path',
+            action='store_true',
+            help='add path to python executable',
+        )
+        parser.add_argument(
+            '-r', '--resolve', action='store_true', help='fully resolve given version'
+        )
         group = parser.add_mutually_exclusive_group()
-        group.add_argument('-c', '--cache-path', action='store_true',
-                           help='just show path to cache dir')
-        group.add_argument('version', nargs='?',
-                           help='version number to show path for')
+        group.add_argument(
+            '-c',
+            '--cache-path',
+            action='store_true',
+            help='just show path to cache dir',
+        )
+        group.add_argument('version', nargs='?', help='version number to show path for')
 
     @staticmethod
     def run(args: Namespace) -> str | None:
@@ -992,10 +1135,10 @@ class path_:
                 if not path.exists():
                     path = basepath / 'python.exe'
                     if not path.exists():
-                        return 'Error: Can not find python executable in '\
-                                f'"{basepath}"'
+                        return f'Error: Can not find python executable in "{basepath}"'
 
             print(path)
+
 
 if __name__ == '__main__':
     sys.exit(main())
