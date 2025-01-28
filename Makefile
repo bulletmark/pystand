@@ -1,6 +1,5 @@
 check:
 	ruff check *.py
-	flake8 *.py
 	mypy *.py
 	pyright *.py
 	vermin -vv --no-tips -i *.py
