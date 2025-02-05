@@ -499,6 +499,7 @@ def purge_unused_releases(args: Namespace) -> None:
 
 def show_list(args: Namespace) -> None:
     "Show a list of available releases"
+    latest = parse_version(get_release_tag(args))
     releases = {r: d for r, d in fetch_tags()}
     cached = set(p.name for p in args._releases.iterdir())
     for release in sorted(cached.union(releases)):
@@ -521,7 +522,9 @@ def show_list(args: Namespace) -> None:
         else:
             app = ''
 
-        print(f'{release} {dts}{app}')
+        pre = ' pre-release' if parse_version(release) > latest else ''
+
+        print(f'{release} {dts}{app}{pre}')
 
 
 def get_title(desc: str) -> str:
@@ -1051,6 +1054,7 @@ class show_:
             args.parser.error('Can not specify --all with --list.')
 
         if args.list:
+            args.release = False
             show_list(args)
             return None
 
