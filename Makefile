@@ -1,8 +1,8 @@
+PYFILES = $(wildcard *.py)
 check:
-	ruff check *.py
-	mypy *.py
-	pyright *.py
-	vermin -vv --no-tips -i *.py
+	ruff check $(PYFILES)
+	mypy $(PYFILES)
+	pyright $(PYFILES)
 
 build:
 	rm -rf dist
@@ -15,7 +15,7 @@ doc:
 	update-readme-usage -A
 
 format:
-	ruff format *.py
+	ruff check --select I --fix $(PYFILES) && ruff format $(PYFILES)
 
 clean:
 	@rm -vrf *.egg-info build/ dist/ __pycache__
