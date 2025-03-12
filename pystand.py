@@ -396,12 +396,11 @@ def get_release_files(args, tag, implementation: str | None = None) -> dict:
             return {}
 
         # Not in cache so fetch it (and also store in cache)
-        from github.GithubException import UnknownObjectException
-
         gh = get_gh(args)
         try:
             release = gh.get_repo(GITHUB_REPO).get_release(tag)
-        except UnknownObjectException:
+        except Exception as e:
+            print(f'Error: {str(e)}', file=sys.stderr)
             return {}
 
         # Iterate over the release assets and store pertinent files in a
