@@ -409,8 +409,6 @@ Note you can set a different default distribution by specifying
 The `show` command can be used to search for distributions as seen in the
 following examples.
 
-```sh
-
 List all the versions installed on this system (at the default location):
 
 ```sh
