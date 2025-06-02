@@ -559,7 +559,7 @@ def strip_binaries(vdir: Path, distribution: str) -> bool:
     # Only run the strip command on Linux hosts and for Linux distributions
     was_stripped = False
     if platform.system() == 'Linux' and '-linux-' in distribution:
-        for path in ('bin', 'lib'):
+        for path in ('lib',):
             base = vdir / path
             if not base.is_dir():
                 continue
