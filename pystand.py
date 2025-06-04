@@ -631,7 +631,8 @@ def main() -> str | None:
     opt.add_argument(
         '-D',
         '--distribution',
-        help=f'{REPO} distribution. Default is "{distro_help} for this host',
+        help=f'{REPO} distribution. Default is "{distro_help}" for this host. '
+        f'Run "{PROG} show -a" to see all distributions.',
     )
     opt.add_argument(
         '-P',
