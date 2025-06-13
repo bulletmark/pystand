@@ -24,7 +24,7 @@ required
 for your machine architecture is normally auto-detected. By default, the
 _`install_only_stripped`_ build of the distribution is installed but you
 can choose to [install any other
-build/distribution](#installing-other-builds/distributions) instead, or
+build/distribution](#installing-other-buildsdistributions) instead, or
 in parallel.
 
 Some simple usage examples are:
