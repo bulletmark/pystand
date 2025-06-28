@@ -610,6 +610,36 @@ def install(
     return error
 
 
+def to_human(num, prec: int | None = None) -> str:
+    "Convert a number of bytes to a human-readable format"
+    units = ('B', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y')
+    for unit in units:
+        if abs(num) < 1024.0 or unit == units[-1]:
+            return f'{round(num, prec)}{unit}'
+        num /= 1024.0
+
+    return ''
+
+
+def show_cache_size(path: Path, args: Namespace) -> None:
+    "Show the size of the cache directory"
+    total = 0
+    for spath in sorted(path.iterdir()):
+        size = (
+            sum(p.stat().st_size for p in spath.iterdir())
+            if spath.is_dir()
+            else spath.stat().st_size
+        )
+        total += size
+        size_str = f'{size}B' if args.no_human_readable else to_human(size)
+        name = str(spath) if spath.is_dir() else spath.name
+        print(f'{size_str}\t{name}')
+
+    if not args.no_total:
+        size_str = f'{total}B' if args.no_human_readable else to_human(total, 2)
+        print(f'{size_str}\tTOTAL')
+
+
 def main() -> str | None:
     "Main code"
     distro_default = DISTRIBUTIONS.get((platform.system(), platform.machine()))
@@ -1142,6 +1172,34 @@ class path_:
                         return f'Error: Can not find python executable in "{basepath}"'
 
             print(path)
+
+
+# COMMAND
+class cache_:
+    "Show release cache sizes."
+
+    @staticmethod
+    def init(parser: ArgumentParser) -> None:
+        parser.add_argument(
+            '-T', '--no-total', action='store_true', help='do not show total cache size'
+        )
+        parser.add_argument(
+            '-H',
+            '--no-human-readable',
+            action='store_true',
+            help='show sizes in bytes, not human readable format',
+        )
+        parser.add_argument(
+            'release', nargs='*', help='show cache size for given release[s] only'
+        )
+
+    @staticmethod
+    def run(args: Namespace) -> str | None:
+        if args.release:
+            for release in args.release:
+                show_cache_size(args._downloads / release, args)
+        else:
+            show_cache_size(args._downloads, args)
 
 
 if __name__ == '__main__':

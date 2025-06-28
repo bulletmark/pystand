@@ -114,7 +114,7 @@ usage: pystand [-h] [-D DISTRIBUTION] [-P PREFIX_DIR] [-C CACHE_DIR]
                   [-M CACHE_MINUTES] [--purge-days PURGE_DAYS]
                   [--github-access-token GITHUB_ACCESS_TOKEN] [--no-strip]
                   [-V]
-                  {install,update,upgrade,remove,uninstall,list,show,path} ...
+                  {install,update,upgrade,remove,uninstall,list,show,path,cache} ...
 
 Command line tool to download, install, and update pre-built Python versions
 from the python-build-standalone project at https://github.com/astral-
@@ -148,7 +148,7 @@ options:
   -V, --version         just show pystand version
 
 Commands:
-  {install,update,upgrade,remove,uninstall,list,show,path}
+  {install,update,upgrade,remove,uninstall,list,show,path,cache}
     install             Install one or more versions from a python-build-
                         standalone release.
     update (upgrade)    Update one, more, or all versions to another release.
@@ -157,6 +157,7 @@ Commands:
                         available.
     show                Show versions available from a release.
     path                Show path prefix to installed version base directory.
+    cache               Show release cache sizes.
 
 Some commands offer aliases as shown in parentheses above. Note you can set
 default starting global options in $HOME/.config/pystand-flags.conf.
@@ -289,6 +290,23 @@ options:
   -p, --python-path  add path to python executable
   -r, --resolve      fully resolve given version
   -c, --cache-path   just show path to cache dir
+```
+
+### Command `cache`
+
+```
+usage: pystand cache [-h] [-T] [-H] [release ...]
+
+Show release cache sizes.
+
+positional arguments:
+  release               show cache size for given release[s] only
+
+options:
+  -h, --help            show this help message and exit
+  -T, --no-total        do not show total cache size
+  -H, --no-human-readable
+                        show sizes in bytes, not human readable format
 ```
 
 ## Installation and Upgrade
