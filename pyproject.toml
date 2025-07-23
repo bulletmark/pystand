@@ -18,7 +18,7 @@ dependencies = [
   "packaging",
   "platformdirs",
   "pygithub",
-  "zstandard",
+  "zstandard; python_version < '3.14'",
 ]
 
 [[project.authors]]
