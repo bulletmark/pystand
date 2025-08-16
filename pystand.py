@@ -77,7 +77,7 @@ def fmt(version, release) -> str:
     return f'{version} @ {release}'
 
 
-def get_json(file: Path) -> dict:
+def get_json(file: Path) -> dict[str, Any]:
     from json import load
 
     'Get JSON data from given file'
@@ -90,7 +90,7 @@ def get_json(file: Path) -> dict:
     return {}
 
 
-def set_json(file: Path, data: dict) -> str | None:
+def set_json(file: Path, data: dict[str, Any]) -> str | None:
     "Set JSON data to given file"
     from json import dump
 
@@ -366,7 +366,7 @@ def get_release_tag(args: Namespace) -> str:
     return tag
 
 
-def add_file(files: dict, tag: str, name: str, url: str) -> None:
+def add_file(files: dict[str, Any], tag: str, name: str, url: str) -> None:
     "Extract the implementation, version, and architecture from a filename"
     if name.endswith('.tar.zst'):
         name = name[:-8]
@@ -394,7 +394,7 @@ def add_file(files: dict, tag: str, name: str, url: str) -> None:
     vers[ver][arch] = url
 
 
-def get_release_files(args, tag, implementation: str | None = None) -> dict:
+def get_release_files(args, tag) -> dict[str, Any]:
     "Return the release files for the given tag"
     # Look for tag data in our release cache
     jfile = args._releases / tag
@@ -422,7 +422,7 @@ def get_release_files(args, tag, implementation: str | None = None) -> dict:
         if error := set_json(jfile, files):
             sys.exit(f'Failed to write release {tag} file {jfile}: {error}')
 
-    return files.get(implementation, {}) if implementation else files
+    return files.get(args._implementation, {})
 
 
 def update_version_symlinks(args: Namespace) -> None:
@@ -586,7 +586,7 @@ def strip_binaries(vdir: Path, distribution: str) -> bool:
 
 
 def install(
-    args: Namespace, vdir: Path, release: str, distribution: str, files: dict
+    args: Namespace, vdir: Path, release: str, distribution: str, files: dict[str, Any]
 ) -> str | None:
     "Install a version"
     version = vdir.name
@@ -773,6 +773,7 @@ def main() -> str | None:
     prefix_dir = Path(args.prefix_dir).expanduser().resolve()
     cache_dir = Path(args.cache_dir).expanduser().resolve()
 
+    args._implementation = 'cpython'  # at the moment, only support CPython
     args._distribution = distribution
     args._data = f'{PROG}.json'
 
@@ -823,7 +824,7 @@ class install_:
     @staticmethod
     def run(args: Namespace) -> str | None:
         release = get_release_tag(args)
-        files = get_release_files(args, release, 'cpython')
+        files = get_release_files(args, release)
         if not files:
             return f'Release "{release}" not found, or has no compatible files.'
 
@@ -882,7 +883,7 @@ class update_:
     @staticmethod
     def run(args: Namespace) -> str | None:
         release_target = get_release_tag(args)
-        files = get_release_files(args, release_target, 'cpython')
+        files = get_release_files(args, release_target)
         if not files:
             return f'Release "{release_target}" not found.'
 
@@ -999,7 +1000,7 @@ class list_:
     @staticmethod
     def run(args: Namespace) -> str | None:
         release_target = get_release_tag(args)
-        files = get_release_files(args, release_target, 'cpython')
+        files = get_release_files(args, release_target)
         if not files:
             return f'Release "{release_target}" not found.'
 
@@ -1097,7 +1098,7 @@ class show_:
             return None
 
         release = get_release_tag(args)
-        files = get_release_files(args, release, 'cpython')
+        files = get_release_files(args, release)
         if not files:
             return f'Error: release "{release}" not found.'
 
