@@ -113,7 +113,7 @@ Type `pystand` or `pystand -h` to view the usage summary:
 usage: pystand [-h] [-D DISTRIBUTION] [-P PREFIX_DIR] [-C CACHE_DIR]
                   [-M CACHE_MINUTES] [--purge-days PURGE_DAYS]
                   [--github-access-token GITHUB_ACCESS_TOKEN] [--no-strip]
-                  [-V]
+                  [--cert {system,certifi,none}] [-V]
                   {install,update,upgrade,remove,uninstall,list,show,path,cache} ...
 
 Command line tool to download, install, and update pre-built Python versions
@@ -145,6 +145,9 @@ options:
                         optional Github access token. Can specify to reduce
                         rate limiting.
   --no-strip            do not strip downloaded binaries
+  --cert {system,certifi,none}
+                        specify which SSL certificates to use for HTTPS
+                        requests. Default="system"
   -V, --version         just show pystand version
 
 Commands:
