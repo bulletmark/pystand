@@ -45,6 +45,7 @@ DISTRIBUTIONS = {
     ('Linux', 'armv8l'): 'armv7-unknown-linux-gnueabihf-install_only_stripped',
     ('Darwin', 'x86_64'): 'x86_64-apple-darwin-install_only_stripped',
     ('Darwin', 'aarch64'): 'aarch64-apple-darwin-install_only_stripped',
+    ('Darwin', 'arm64'): 'aarch64-apple-darwin-install_only_stripped',
     ('Windows', 'x86_64'): 'x86_64-pc-windows-msvc-shared-install_only_stripped',
     ('Windows', 'i686'): 'i686-pc-windows-msvc-shared-install_only_stripped',
 }
