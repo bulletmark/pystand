@@ -13,6 +13,7 @@ import platform
 import re
 import shlex
 import shutil
+import ssl
 import sys
 import time
 from argparse import ArgumentParser, Namespace
@@ -50,6 +51,8 @@ DISTRIBUTIONS = {
     ('Windows', 'x86_64'): 'x86_64-pc-windows-msvc-shared-install_only_stripped',
     ('Windows', 'i686'): 'i686-pc-windows-msvc-shared-install_only_stripped',
 }
+
+CERTS = ('system', 'certifi', 'none')
 
 
 def is_admin() -> bool:
@@ -177,7 +180,7 @@ def fetch(args: Namespace, release: str, url: str, tdir: Path) -> str | None:
 
     if not cache_file.exists():
         try:
-            with urlopen(url) as urlp, cache_file.open('wb') as fp:
+            with urlopen(url, context=args._cert) as urlp, cache_file.open('wb') as fp:
                 shutil.copyfileobj(urlp, fp)
         except Exception as e:
             error = f'Failed to fetch "{url}": {e}'
@@ -316,12 +319,12 @@ def check_release_tag(release: str) -> str | None:
 # Note we use a simple direct URL fetch to get the latest tag info
 # because it is much faster than using the GitHub API, and has no
 # rate-limits.
-def fetch_tags() -> Iterator[tuple[str, str]]:
+def fetch_tags(args: Namespace) -> Iterator[tuple[str, str]]:
     "Fetch the latest release tags from the GitHub release atom feed"
     import xml.etree.ElementTree as et
 
     try:
-        with urlopen(LATEST_RELEASES) as url:
+        with urlopen(LATEST_RELEASES, context=args._cert) as url:
             data = et.parse(url).getroot()
     except Exception:
         sys.exit('Failed to fetch latest YYYYMMDD release atom file.')
@@ -334,10 +337,10 @@ def fetch_tags() -> Iterator[tuple[str, str]]:
                 yield tl, dt
 
 
-def fetch_tag_latest() -> str:
+def fetch_tag_latest(args: Namespace) -> str:
     "Fetch the latest release tag from the GitHub"
     try:
-        with urlopen(LATEST_RELEASE_TAG) as url:
+        with urlopen(LATEST_RELEASE_TAG, context=args._cert) as url:
             data = url.geturl()
     except Exception:
         sys.exit('Failed to fetch latest YYYYMMDD release tag.')
@@ -358,7 +361,7 @@ def get_release_tag(args: Namespace) -> str:
         if time.time() < (stat.st_mtime + int(args.cache_minutes * 60)):
             return args._latest_release.read_text().strip()
 
-    if not (tag := fetch_tag_latest()):
+    if not (tag := fetch_tag_latest(args)):
         sys.exit('Latest YYYYMMDD release tag timestamp file is unavailable.')
 
     args._latest_release.write_text(tag + '\n')
@@ -506,7 +509,7 @@ def purge_unused_releases(args: Namespace) -> None:
 def show_list(args: Namespace) -> None:
     "Show a list of available releases"
     latest = parse_version(get_release_tag(args))
-    releases = {r: d for r, d in fetch_tags()}
+    releases = {r: d for r, d in fetch_tags(args)}
     cached = set(p.name for p in args._releases.iterdir())
     for release in sorted(cached.union(releases)):
         if args.re_match and not re.search(args.re_match, release):
@@ -647,6 +650,21 @@ def show_cache_size(path: Path, args: Namespace) -> None:
         print(f'{size_str}\tTOTAL')
 
 
+def create_cert(option: str) -> ssl.SSLContext | None:
+    "Create an SSL context for HTTPS connections based on the specified certificate store"
+
+    if not option or option == 'system':
+        return None
+
+    if option == 'certifi':
+        import certifi
+
+        return ssl.create_default_context(cafile=certifi.where())
+
+    assert option == 'none'
+    return ssl._create_unverified_context()
+
+
 def main() -> str | None:
     "Main code"
     distro_default = DISTRIBUTIONS.get((platform.system(), platform.machine()))
@@ -706,6 +724,11 @@ def main() -> str | None:
     )
     opt.add_argument(
         '--no-strip', action='store_true', help='do not strip downloaded binaries'
+    )
+    opt.add_argument(
+        '--cert',
+        choices=CERTS,
+        help=f'specify which SSL certificates to use for HTTPS requests. Default="{CERTS[0]}"',
     )
     opt.add_argument(
         '-V', '--version', action='store_true', help=f'just show {PROG} version'
@@ -784,6 +807,7 @@ def main() -> str | None:
     args._releases = cache_dir / 'releases'
     args._releases.mkdir(parents=True, exist_ok=True)
     args._latest_release = cache_dir / 'latest_release'
+    args._cert = create_cert(args.cert)
 
     result = args.func(args)
     purge_unused_releases(args)
