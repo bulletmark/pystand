@@ -20,6 +20,7 @@ from collections import defaultdict
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Iterable, Iterator
+from urllib.request import urlopen
 
 import argcomplete
 import platformdirs
@@ -163,7 +164,6 @@ def register_zst() -> None:
 def fetch(args: Namespace, release: str, url: str, tdir: Path) -> str | None:
     "Fetch and unpack a release file"
     from urllib.parse import unquote, urlparse
-    from urllib.request import urlretrieve
 
     error = None
     tmpdir = tdir.with_name(f'{tdir.name}-tmp')
@@ -177,7 +177,8 @@ def fetch(args: Namespace, release: str, url: str, tdir: Path) -> str | None:
 
     if not cache_file.exists():
         try:
-            urlretrieve(url, cache_file)
+            with urlopen(url) as urlp, cache_file.open('wb') as fp:
+                shutil.copyfileobj(urlp, fp)
         except Exception as e:
             error = f'Failed to fetch "{url}": {e}'
 
@@ -318,7 +319,6 @@ def check_release_tag(release: str) -> str | None:
 def fetch_tags() -> Iterator[tuple[str, str]]:
     "Fetch the latest release tags from the GitHub release atom feed"
     import xml.etree.ElementTree as et
-    from urllib.request import urlopen
 
     try:
         with urlopen(LATEST_RELEASES) as url:
@@ -336,8 +336,6 @@ def fetch_tags() -> Iterator[tuple[str, str]]:
 
 def fetch_tag_latest() -> str:
     "Fetch the latest release tag from the GitHub"
-    from urllib.request import urlopen
-
     try:
         with urlopen(LATEST_RELEASE_TAG) as url:
             data = url.geturl()
