@@ -7,14 +7,14 @@ installation, and update of pre-built Python versions from the
 [`python-build-standalone`][pbs] project. The following commands are
 provided:
 
-|Command  |Description                                                           |
-|---------|----------------------------------------------------------------------|
-|`install`|Install one or more versions from a python-build-standalone release   |
-|`update` (or `upgrade`) |Update one, more, or all versions to another release   |
-|`remove` (or `uninstall`) |Remove/uninstall one, more, or all versions          |
-|`list`   |List installed versions and show which have an update available       |
-|`show`   |Show versions available from a release                                |
-|`path`   |Show path prefix to installed version base directory                  |
+|Command  |Description                                                         |
+|---------|--------------------------------------------------------------------|
+|`install`|Install one or more versions from a python-build-standalone release.|
+|`update` (or `upgrade`) |Update one, more, or all versions to another release.|
+|`remove` (or `uninstall`) |Remove/uninstall one, more, or all versions.|
+|`list`   |List installed versions and show which have an update available.|
+|`show`   |Show versions available from a release.|
+|`path`   |Show path prefix to installed version base directory.|
 
 By default, Python versions are sourced from the latest
 `python-build-standalone` [release][pbs-rel] available (e.g.
@@ -565,6 +565,21 @@ either a Github "fine-grained" or "classic" token. Specify the token on
 the command line with `--github-access-token`, or set that as a [default
 option](#command-default-options).
 
+## HTTPS Certificate Verification
+
+A global option `--cert` is provided to specify which SSL certificates to use
+for HTTPS requests. This is useful if you are running `pystand` in an
+environment where the system certificates are not available, or you want to use
+the bundled [`certifi`][certifi] certificates instead.
+
+The available options are:
+
+|Option   |Description
+|-------- |------------
+|`system` |Use system certificates (as used normally by Python). This is the default.|
+|`certifi`|Use the [`certifi`][certifi] package, i.e. use the certificates bundled within the application.|
+|`none`   |Perform unverified https requests (best to avoid using this).|
+
 ## Command Line Tab Completion
 
 Command line shell [tab
@@ -598,5 +613,6 @@ FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License at
 [hatch]: https://hatch.pypa.io/
 [hatchpy]: https://hatch.pypa.io/latest/tutorials/python/manage/
 [ryepy]: https://rye.astral.sh/guide/toolchains/#fetching-toolchains
+[certifi]: https://pypi.org/project/certifi/
 
 <!-- vim: se ai syn=markdown: -->
