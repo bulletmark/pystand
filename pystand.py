@@ -693,13 +693,13 @@ def main() -> str | None:
         '-P',
         '--prefix-dir',
         default=prefix_dir,
-        help='specify prefix dir for storing versions. Default is "%(default)s"',
+        help='specify prefix dir for storing versions. Default is "%(default)s".',
     )
     opt.add_argument(
         '-C',
         '--cache-dir',
         default=str(cache_dir),
-        help='specify cache dir for downloads. Default is "%(default)s"',
+        help='specify cache dir for downloads. Default is "%(default)s".',
     )
     opt.add_argument(
         '-M',
@@ -708,7 +708,7 @@ def main() -> str | None:
         type=float,
         help='cache latest YYYYMMDD release tag fetch for this '
         'many minutes, before rechecking for latest. '
-        'Default is %(default)d minutes',
+        'Default is %(default)d minutes.',
     )
     opt.add_argument(
         '--purge-days',
@@ -716,7 +716,7 @@ def main() -> str | None:
         type=int,
         help='cache YYYYMMDD release file lists and downloads for '
         'this number of days after last version referencing that '
-        'release is removed. Default is %(default)d days',
+        'release is removed. Default is %(default)d days.',
     )
     opt.add_argument(
         '--github-access-token',
@@ -728,7 +728,7 @@ def main() -> str | None:
     opt.add_argument(
         '--cert',
         choices=CERTS,
-        help=f'specify which SSL certificates to use for HTTPS requests. Default="{CERTS[0]}"',
+        help=f'specify which SSL certificates to use for HTTPS requests. Default="{CERTS[0]}".',
     )
     opt.add_argument(
         '-V', '--version', action='store_true', help=f'just show {PROG} version'

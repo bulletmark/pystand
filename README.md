@@ -129,25 +129,25 @@ options:
                         distributions.
   -P, --prefix-dir PREFIX_DIR
                         specify prefix dir for storing versions. Default is
-                        "$HOME/.local/share/pystand"
+                        "$HOME/.local/share/pystand".
   -C, --cache-dir CACHE_DIR
                         specify cache dir for downloads. Default is
-                        "$HOME/.cache/pystand"
+                        "$HOME/.cache/pystand".
   -M, --cache-minutes CACHE_MINUTES
                         cache latest YYYYMMDD release tag fetch for this many
                         minutes, before rechecking for latest. Default is 60
-                        minutes
+                        minutes.
   --purge-days PURGE_DAYS
                         cache YYYYMMDD release file lists and downloads for
                         this number of days after last version referencing
-                        that release is removed. Default is 90 days
+                        that release is removed. Default is 90 days.
   --github-access-token GITHUB_ACCESS_TOKEN
                         optional Github access token. Can specify to reduce
                         rate limiting.
   --no-strip            do not strip downloaded binaries
   --cert {system,certifi,none}
                         specify which SSL certificates to use for HTTPS
-                        requests. Default="system"
+                        requests. Default="system".
   -V, --version         just show pystand version
 
 Commands:
@@ -548,9 +548,8 @@ anything after on a line) are ignored. Type `pystand` to see all
 supported options.
 
 The global options: `--distribution`, `--prefix-dir`, `--cache-dir`,
-`--cache-minutes`, `--purge-days`, `--github-access-token`,
-`--no-strip`, are the only sensible candidates to consider setting
-as defaults.
+`--cache-minutes`, `--purge-days`, `--github-access-token`, `--no-strip`,
+`--cert` are the only sensible candidates to consider setting as defaults.
 
 ## Github API Rate Limiting
 
@@ -579,6 +578,9 @@ The available options are:
 |`system` |Use system certificates (as used normally by Python). This is the default.|
 |`certifi`|Use the [`certifi`][certifi] package, i.e. use the certificates bundled within the application.|
 |`none`   |Perform unverified https requests (best to avoid using this).|
+
+Specify the option on the command line with `--cert`, or set that as a [default
+option](#command-default-options).
 
 ## Command Line Tab Completion
 
