@@ -18,9 +18,10 @@ import sys
 import time
 from argparse import ArgumentParser, Namespace
 from collections import defaultdict
+from collections.abc import Iterable, Iterator
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any, Iterable, Iterator
+from typing import Any
 from urllib.request import urlopen
 
 import argcomplete

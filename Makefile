@@ -3,6 +3,7 @@ check:
 	ruff check $(PYFILES)
 	mypy $(PYFILES)
 	pyright $(PYFILES)
+	vermin -vv --no-tips -i $(PYFILES)
 	md-link-checker
 
 build:
