@@ -11,12 +11,10 @@ from __future__ import annotations
 import os
 import platform
 import re
-import shlex
 import shutil
 import ssl
 import sys
 import time
-from argparse import ArgumentParser, Namespace
 from collections import defaultdict
 from collections.abc import Iterable, Iterator
 from datetime import date, datetime
@@ -26,6 +24,7 @@ from urllib.request import urlopen
 
 import argcomplete
 import platformdirs
+from argparse_from_file import ArgumentParser, Namespace  # type: ignore
 from packaging.version import parse as parse_version
 
 REPO = 'python-build-standalone'
@@ -38,7 +37,6 @@ LATEST_RELEASE_TAG = f'{GITHUB_SITE}/releases/latest'
 SAMPL_RELEASE = '20240415'
 
 PROG = Path(__file__).stem
-CNFFILE = platformdirs.user_config_path(f'{PROG}-flags.conf')
 
 # Default distributions for various platforms
 DISTRIBUTIONS = {
@@ -679,8 +677,7 @@ def main() -> str | None:
     opt = ArgumentParser(
         description=__doc__,
         epilog='Some commands offer aliases as shown in parentheses above. '
-        'Note you can set default starting global options in '
-        f'{CNFFILE}.',
+        'Note you can set default starting global options in #FROM_FILE_PATH#',
     )
 
     # Set up main/global arguments
@@ -764,18 +761,7 @@ def main() -> str | None:
 
     # Command arguments are now defined, so we can set up argcomplete
     argcomplete.autocomplete(opt)
-
-    # Merge in default args from user config file. Then parse the
-    # command line.
-    cnffile = CNFFILE.expanduser()
-    if cnffile.is_file():
-        with cnffile.open() as fp:
-            lines = [re.sub(r'#.*$', '', line).strip() for line in fp]
-        cnflines = ' '.join(lines).strip()
-    else:
-        cnflines = ''
-
-    args = opt.parse_args(shlex.split(cnflines) + sys.argv[1:])
+    args = opt.parse_args()
 
     if 'func' not in args:
         if args.version:

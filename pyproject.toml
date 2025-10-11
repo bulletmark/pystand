@@ -17,6 +17,7 @@ dependencies = [
   "argcomplete",
   "packaging",
   "platformdirs",
+  "argparse-from-file",
   "pygithub",
   "certifi",
   "zstandard; python_version < '3.14'",
