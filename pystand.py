@@ -21,6 +21,7 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 from urllib.request import urlopen
+import filelock
 
 import argcomplete
 import platformdirs
@@ -773,10 +774,7 @@ def main() -> str | None:
 
     distribution = args.distribution or distro_default
     if not distribution:
-        sys.exit(
-            'Unknown system + machine distribution. Please specify '
-            'using -D/--distribution option.'
-        )
+        return 'Unknown system + machine distribution. Please specify using -D/--distribution option.'
 
     # Keep some useful info in the namespace passed to the command
     prefix_dir = Path(args.prefix_dir).expanduser().resolve()
@@ -788,7 +786,6 @@ def main() -> str | None:
 
     args._versions = prefix_dir
     args._versions.mkdir(parents=True, exist_ok=True)
-
     args._downloads = cache_dir / 'downloads'
     args._downloads.mkdir(parents=True, exist_ok=True)
     args._releases = cache_dir / 'releases'
@@ -796,9 +793,18 @@ def main() -> str | None:
     args._latest_release = cache_dir / 'latest_release'
     args._cert = create_cert(args.cert)
 
-    result = args.func(args)
-    purge_unused_releases(args)
-    update_version_symlinks(args)
+    # Only allow one instance of this program to run (to read/write prefix and cache dirs)
+    p_lock = filelock.FileLock(prefix_dir / '.lock')
+    c_lock = filelock.FileLock(cache_dir / '.lock')
+
+    try:
+        with p_lock.acquire(blocking=False), c_lock.acquire(blocking=False):
+            result = args.func(args)
+            purge_unused_releases(args)
+            update_version_symlinks(args)
+    except filelock.Timeout:
+        return f'ERROR: Another instance of {PROG} is already running.'
+
     return result
 
 

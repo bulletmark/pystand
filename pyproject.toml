@@ -20,6 +20,7 @@ dependencies = [
   "argparse-from-file",
   "pygithub",
   "certifi",
+  "filelock",
   "zstandard; python_version < '3.14'",
 ]
 
