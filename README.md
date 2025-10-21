@@ -126,7 +126,9 @@ options:
                         python-build-standalone distribution. Default is
                         "x86_64_v3-unknown-linux-gnu-install_only_stripped"
                         for this host. Run "pystand show -a" to see all
-                        distributions.
+                        distributions. See
+                        https://gregoryszorc.com/docs/python-build-
+                        standalone/main/
   -P, --prefix-dir PREFIX_DIR
                         specify prefix dir for storing versions. Default is
                         "$HOME/.local/share/pystand".

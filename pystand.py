@@ -21,9 +21,9 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 from urllib.request import urlopen
-import filelock
 
 import argcomplete
+import filelock
 import platformdirs
 from argparse_from_file import ArgumentParser, Namespace  # type: ignore
 from packaging.version import parse as parse_version
@@ -33,6 +33,7 @@ GITHUB_REPO = f'astral-sh/{REPO}'
 GITHUB_SITE = f'https://github.com/{GITHUB_REPO}'
 LATEST_RELEASES = f'{GITHUB_SITE}/releases.atom'
 LATEST_RELEASE_TAG = f'{GITHUB_SITE}/releases/latest'
+DOC = 'https://gregoryszorc.com/docs/python-build-standalone/main/'
 
 # Sample release tag for documentation/usage examples
 SAMPL_RELEASE = '20240415'
@@ -678,7 +679,7 @@ def main() -> str | None:
     opt = ArgumentParser(
         description=__doc__,
         epilog='Some commands offer aliases as shown in parentheses above. '
-        'Note you can set default starting global options in #FROM_FILE_PATH#',
+        'Note you can set default starting global options in #FROM_FILE_PATH#.',
     )
 
     # Set up main/global arguments
@@ -686,7 +687,7 @@ def main() -> str | None:
         '-D',
         '--distribution',
         help=f'{REPO} distribution. Default is "{distro_help}" for this host. '
-        f'Run "{PROG} show -a" to see all distributions.',
+        f'Run "{PROG} show -a" to see all distributions. See {DOC}'
     )
     opt.add_argument(
         '-P',
