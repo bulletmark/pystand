@@ -162,7 +162,7 @@ Commands:
                         available.
     show                Show versions available from a release.
     path                Show path prefix to installed version base directory.
-    cache               Show release cache sizes.
+    cache               Show size of release download caches.
 
 Some commands offer aliases as shown in parentheses above. Note you can set
 default starting global options in $HOME/.config/pystand-flags.conf.
@@ -300,9 +300,9 @@ options:
 ### Command `cache`
 
 ```
-usage: pystand cache [-h] [-T] [-H] [release ...]
+usage: pystand cache [-h] [-T] [-H] [-r] [release ...]
 
-Show release cache sizes.
+Show size of release download caches.
 
 positional arguments:
   release               show cache size for given release[s] only
@@ -312,6 +312,7 @@ options:
   -T, --no-total        do not show total cache size
   -H, --no-human-readable
                         show sizes in bytes, not human readable format
+  -r, --remove          remove download cache[s] instead of showing size
 ```
 
 ## Installation and Upgrade

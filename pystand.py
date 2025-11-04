@@ -25,7 +25,7 @@ from urllib.request import urlopen
 import argcomplete
 import filelock
 import platformdirs
-from argparse_from_file import ArgumentParser, Namespace  # type: ignore
+from argparse_from_file import ArgumentParser, Namespace
 from packaging.version import parse as parse_version
 
 REPO = 'python-build-standalone'
@@ -146,23 +146,19 @@ def rm_path(path: Path) -> None:
 
 def register_zst() -> None:
     "Register custom zstandard unpacker"
-    # Python 3.14+ has built-in support for zstandard so only register custom
-    # handler for earlier versions
-    if sys.version_info < (3, 14):
+    def unpack_zst(filename: str, extract_dir: str) -> None:
+        "Unpack a zstandard compressed tar"
+        import tarfile
 
-        def unpack_zst(filename: str, extract_dir: str) -> None:
-            "Unpack a zstandard compressed tar"
-            import tarfile
+        import zstandard
 
-            import zstandard
+        with open(filename, 'rb') as compressed:
+            dctx = zstandard.ZstdDecompressor()
+            with dctx.stream_reader(compressed) as reader:
+                with tarfile.open(fileobj=reader, mode='r|') as tar:
+                    tar.extractall(path=extract_dir)
 
-            with open(filename, 'rb') as compressed:
-                dctx = zstandard.ZstdDecompressor()
-                with dctx.stream_reader(compressed) as reader:
-                    with tarfile.open(fileobj=reader, mode='r|') as tar:
-                        tar.extractall(path=extract_dir)
-
-        shutil.register_unpack_format('zst', ['.zst'], unpack_zst)
+    shutil.register_unpack_format('zst', ['.zst'], unpack_zst)
 
 
 def fetch(args: Namespace, release: str, url: str, tdir: Path) -> str | None:
@@ -189,7 +185,8 @@ def fetch(args: Namespace, release: str, url: str, tdir: Path) -> str | None:
     if error:
         rm_path(cache_file)
     else:
-        if filename.endswith('.zst'):
+        # Register custom zstandard handler (only if Python < 3.14 which has built-in support)
+        if filename.endswith('.zst') and sys.version_info < (3, 14):
             register_zst()
 
         try:
@@ -502,9 +499,10 @@ def purge_unused_releases(args: Namespace) -> None:
                 keep.add(path.name)
 
     # Purge any downloads for releases that have expired
-    for path in args._downloads.iterdir():
-        if path.name not in keep:
-            rm_path(path)
+    if args._downloads.is_dir():
+        for path in args._downloads.iterdir():
+            if path.name not in keep:
+                rm_path(path)
 
 
 def show_list(args: Namespace) -> None:
@@ -687,7 +685,7 @@ def main() -> str | None:
         '-D',
         '--distribution',
         help=f'{REPO} distribution. Default is "{distro_help}" for this host. '
-        f'Run "{PROG} show -a" to see all distributions. See {DOC}'
+        f'Run "{PROG} show -a" to see all distributions. See {DOC}',
     )
     opt.add_argument(
         '-P',
@@ -1202,7 +1200,7 @@ class path_:
 
 # COMMAND
 class cache_:
-    "Show release cache sizes."
+    "Show size of release download caches."
 
     @staticmethod
     def init(parser: ArgumentParser) -> None:
@@ -1216,12 +1214,27 @@ class cache_:
             help='show sizes in bytes, not human readable format',
         )
         parser.add_argument(
+            '-r',
+            '--remove',
+            action='store_true',
+            help='remove download cache[s] instead of showing size',
+        )
+        parser.add_argument(
             'release', nargs='*', help='show cache size for given release[s] only'
         )
 
     @staticmethod
     def run(args: Namespace) -> str | None:
-        if args.release:
+        if args.remove:
+            if args.release:
+                for release in args.release:
+                    rm_path(args._downloads / release)
+            else:
+                rm_path(args._downloads)
+
+            print('Cache removed.')
+
+        elif args.release:
             for release in args.release:
                 show_cache_size(args._downloads / release, args)
         else:
