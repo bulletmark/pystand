@@ -1181,7 +1181,7 @@ class path_:
             print(args._downloads.parent if args.cache_path else args._versions)
         else:
             path = args._versions / version
-            if not path.is_symlink() or not path.exists():
+            if not path.exists():
                 return f'Version "{version}" is not installed.'
 
             if args.resolve:
