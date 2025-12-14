@@ -146,6 +146,7 @@ def rm_path(path: Path) -> None:
 
 def register_zst() -> None:
     "Register custom zstandard unpacker"
+
     def unpack_zst(filename: str, extract_dir: str) -> None:
         "Unpack a zstandard compressed tar"
         import tarfile
