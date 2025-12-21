@@ -113,7 +113,7 @@ Type `pystand` or `pystand -h` to view the usage summary:
 usage: pystand [-h] [-D DISTRIBUTION] [-P PREFIX_DIR] [-C CACHE_DIR]
                   [-M CACHE_MINUTES] [--purge-days PURGE_DAYS]
                   [--github-access-token GITHUB_ACCESS_TOKEN] [--no-strip]
-                  [--cert {system,certifi,none}] [-V]
+                  [--no-color] [--cert {system,certifi,none}] [-V]
                   {install,update,upgrade,remove,uninstall,list,show,path,cache} ...
 
 Command line tool to download, install, and update pre-built Python versions
@@ -147,6 +147,7 @@ options:
                         optional Github access token. Can specify to reduce
                         rate limiting.
   --no-strip            do not strip downloaded binaries
+  --no-color            do not use color in output
   --cert {system,certifi,none}
                         specify which SSL certificates to use for HTTPS
                         requests. Default="system".
@@ -165,7 +166,7 @@ Commands:
     cache               Show size of release download caches.
 
 Some commands offer aliases as shown in parentheses above. Note you can set
-default starting global options in $HOME/.config/pystand-flags.conf.
+default starting global options in ~/.config/pystand-flags.conf.
 ```
 
 Type `pystand <command> -h` to see specific help/usage for any

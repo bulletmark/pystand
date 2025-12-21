@@ -8,6 +8,7 @@ https://github.com/astral-sh/python-build-standalone.
 
 from __future__ import annotations
 
+import itertools
 import os
 import platform
 import re
@@ -55,6 +56,22 @@ DISTRIBUTIONS = {
 
 CERTS = ('system', 'certifi', 'none')
 
+# Define ANSI escape sequences for colors
+# Refer https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
+COLORS = [
+    '\033[32m',  # green
+    '\033[33m',  # yellow
+    '\033[35m',  # magenta
+    '\033[34m',  # blue
+    '\033[36m',  # cyan
+    '\033[31m',  # red
+    '\033[37m',  # white
+    '\033[39m',  # reset to default color
+]
+
+next_color = itertools.cycle(COLORS[1:-1])
+color_tab = {}
+
 
 def is_admin() -> bool:
     "Check if we are running as root"
@@ -78,8 +95,18 @@ def get_version() -> str:
     return ver
 
 
-def fmt(version, release) -> str:
+def fmt(version: str, release: str, args: Namespace) -> str:
     "Return a formatted release version string"
+    if not args.no_color:
+        if release == args._release:
+            color = COLORS[0]
+        elif not (color := color_tab.get(release)):
+            # Assign a new color for this release by cycling through the
+            # available colors.
+            color_tab[release] = color = next(next_color)
+
+        release = f'{color}{release}{COLORS[-1]}'
+
     return f'{version} @ {release}'
 
 
@@ -349,7 +376,7 @@ def fetch_tag_latest(args: Namespace) -> str:
 
 def get_release_tag(args: Namespace) -> str:
     "Return the release tag, or latest if not specified"
-    if release := args.release:
+    if hasattr(args, 'release') and (release := args.release):
         if err := check_release_tag(release):
             sys.exit(err)
 
@@ -508,7 +535,7 @@ def purge_unused_releases(args: Namespace) -> None:
 
 def show_list(args: Namespace) -> None:
     "Show a list of available releases"
-    latest = parse_version(get_release_tag(args))
+    latest = parse_version(args._release)
     releases = {r: d for r, d in fetch_tags(args)}
     cached = set(p.name for p in args._releases.iterdir())
     for release in sorted(cached.union(releases)):
@@ -725,6 +752,9 @@ def main() -> str | None:
         '--no-strip', action='store_true', help='do not strip downloaded binaries'
     )
     opt.add_argument(
+        '--no-color', action='store_true', help='do not use color in output'
+    )
+    opt.add_argument(
         '--cert',
         choices=CERTS,
         help=f'specify which SSL certificates to use for HTTPS requests. Default="{CERTS[0]}".',
@@ -776,6 +806,10 @@ def main() -> str | None:
     if not distribution:
         return 'Unknown system + machine distribution. Please specify using -D/--distribution option.'
 
+    # Only use color for terminal output
+    if not sys.stdout.isatty():
+        args.no_color = True
+
     # Keep some useful info in the namespace passed to the command
     prefix_dir = Path(args.prefix_dir).expanduser().resolve()
     cache_dir = Path(args.cache_dir).expanduser().resolve()
@@ -799,6 +833,7 @@ def main() -> str | None:
 
     try:
         with p_lock.acquire(blocking=False), c_lock.acquire(blocking=False):
+            args._release = get_release_tag(args)
             result = args.func(args)
             purge_unused_releases(args)
             update_version_symlinks(args)
@@ -839,7 +874,7 @@ class install_:
 
     @staticmethod
     def run(args: Namespace) -> str | None:
-        release = get_release_tag(args)
+        release = args._release
         files = get_release_files(args, release)
         if not files:
             return f'Release "{release}" not found, or has no compatible files.'
@@ -848,7 +883,7 @@ class install_:
         for version in args.version:
             full_version = matcher.match(version)
             if not full_version:
-                return f'Version {fmt(version, release)} not found.'
+                return f'Version {fmt(version, release, args)} not found.'
 
             version = full_version
             vdir = args._versions / version
@@ -859,7 +894,7 @@ class install_:
             if error := install(args, vdir, release, args._distribution, files):
                 return error
 
-            print(f'Version {fmt(version, release)} installed.')
+            print(f'Version {fmt(version, release, args)} installed.')
 
 
 # COMMAND
@@ -898,7 +933,7 @@ class update_:
 
     @staticmethod
     def run(args: Namespace) -> str | None:
-        release_target = get_release_tag(args)
+        release_target = args._release
         files = get_release_files(args, release_target)
         if not files:
             return f'Release "{release_target}" not found.'
@@ -919,22 +954,22 @@ class update_:
             if not distribution or distribution not in files.get(nextver, {}):
                 continue
 
-            if nextver == version and args.keep:
+            if nextver == version and args.keep and release:
                 print(
-                    f'Error: {fmt(version, release)} would not be kept '
-                    f'if update to {fmt(nextver, release_target)} '
+                    f'Error: {fmt(version, release, args)} would not be kept '
+                    f'if update to {fmt(nextver, release_target, args)} '
                     f'distribution="{distribution}"',
                     file=sys.stderr,
                 )
                 continue
 
             new_vdir = args._versions / nextver
-            if nextver != version and new_vdir.exists():
+            if not release or (nextver != version and new_vdir.exists()):
                 continue
 
             print(
-                f'{fmt(version, release)} updating to '
-                f'{fmt(nextver, release_target)} '
+                f'{fmt(version, release, args)} updating to '
+                f'{fmt(nextver, release_target, args)} '
                 f'distribution="{distribution}" ..'
             )
 
@@ -987,7 +1022,7 @@ class remove_:
             release = get_json(dfile).get('release') or '?'
             if not release_del or release == release_del:
                 remove(args, version)
-                print(f'Version {fmt(version, release)} removed.')
+                print(f'Version {fmt(version, release, args)} removed.')
 
 
 # COMMAND
@@ -1015,7 +1050,7 @@ class list_:
 
     @staticmethod
     def run(args: Namespace) -> str | None:
-        release_target = get_release_tag(args)
+        release_target = args._release
         files = get_release_files(args, release_target)
         if not files:
             return f'Release "{release_target}" not found.'
@@ -1033,8 +1068,7 @@ class list_:
             upd = ''
             app = ''
             if release_target and release != release_target:
-                nextver = matcher.match(version, upgrade=True)
-                if not nextver:
+                if not (nextver := matcher.match(version, upgrade=True)):
                     if args.verbose:
                         app = (
                             ' not eligible for update because '
@@ -1050,23 +1084,26 @@ class list_:
                             )
                             app = (
                                 f' not eligible for '
-                                f'update because {fmt(nextver, nrelease)} '
+                                f'update because {fmt(nextver, nrelease, args)} '
                                 'is already installed.'
                             )
                     else:
                         # May not be updatable if newer release does not support
                         # this same distribution anymore
                         if nextver and distribution in files.get(nextver, {}):
-                            upd = f' updatable to {fmt(nextver, release_target)}'
+                            upd = f' updatable to {fmt(nextver, release_target, args)}'
                         elif args.verbose:
                             app = (
                                 ' not eligible for update because '
-                                f'{fmt(nextver, release_target)} does '
+                                f'{fmt(nextver, release_target, args)} does '
                                 'not provide '
                                 f'distribution="{distribution}".'
                             )
 
-            print(f'{fmt(version, release)}{upd} distribution="{distribution}"{app}')
+            if release:
+                print(
+                    f'{fmt(version, release, args)}{upd} distribution="{distribution}"{app}'
+                )
 
 
 # COMMAND
@@ -1113,7 +1150,7 @@ class show_:
             show_list(args)
             return None
 
-        release = get_release_tag(args)
+        release = args._release
         files = get_release_files(args, release)
         if not files:
             return f'Error: release "{release}" not found.'
@@ -1137,7 +1174,7 @@ class show_:
                         args.re_match, f'{version}+{distribution}'
                     ):
                         print(
-                            f'{fmt(version, release)} '
+                            f'{fmt(version, release, args)} '
                             f'distribution="{distribution}"{app}'
                         )
         if not installable:
