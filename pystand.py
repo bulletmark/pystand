@@ -18,6 +18,7 @@ import sys
 import time
 from collections import defaultdict
 from collections.abc import Iterable, Iterator
+from dataclasses import dataclass, field
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
@@ -69,8 +70,15 @@ COLORS = [
     '\033[39m',  # reset to default color
 ]
 
-next_color = itertools.cycle(COLORS[1:-1])
-color_tab = {}
+
+@dataclass
+class ColorTable:
+    next: Iterator[str] = field(default_factory=lambda: itertools.cycle(COLORS[1:-1]))
+    table: dict[str, str] = field(default_factory=dict)
+
+
+colors_rel = ColorTable()
+colors_dist = ColorTable()
 
 
 def is_admin() -> bool:
@@ -95,19 +103,34 @@ def get_version() -> str:
     return ver
 
 
-def fmt(version: str, release: str, args: Namespace) -> str:
+def fmtrel(version: str, release: str, args: Namespace) -> str:
     "Return a formatted release version string"
     if not args.no_color:
         if release == args._release:
             color = COLORS[0]
-        elif not (color := color_tab.get(release)):
+        elif not (color := colors_rel.table.get(release)):
             # Assign a new color for this release by cycling through the
             # available colors.
-            color_tab[release] = color = next(next_color)
+            colors_rel.table[release] = color = next(colors_rel.next)
 
         release = f'{color}{release}{COLORS[-1]}'
 
     return f'{version} @ {release}'
+
+
+def fmtdist(dist: str, args: Namespace) -> str:
+    "Return a formatted distribution string"
+    if not args.no_color:
+        if dist == args._distribution:
+            color = COLORS[0]
+        elif not (color := colors_dist.table.get(dist)):
+            # Assign a new color for this distribution by cycling through the
+            # available colors.
+            colors_dist.table[dist] = color = next(colors_dist.next)
+
+        dist = f'{color}{dist}{COLORS[-1]}'
+
+    return f'distribution="{dist}"'
 
 
 def get_json(file: Path) -> dict[str, Any]:
@@ -173,15 +196,14 @@ def rm_path(path: Path) -> None:
 
 def register_zst() -> None:
     "Register custom zstandard unpacker"
+    import tarfile
+
+    from zstandard import ZstdDecompressor
 
     def unpack_zst(filename: str, extract_dir: str) -> None:
         "Unpack a zstandard compressed tar"
-        import tarfile
-
-        import zstandard
-
         with open(filename, 'rb') as compressed:
-            dctx = zstandard.ZstdDecompressor()
+            dctx = ZstdDecompressor()
             with dctx.stream_reader(compressed) as reader:
                 with tarfile.open(fileobj=reader, mode='r|') as tar:
                     tar.extractall(path=extract_dir)
@@ -883,7 +905,7 @@ class install_:
         for version in args.version:
             full_version = matcher.match(version)
             if not full_version:
-                return f'Version {fmt(version, release, args)} not found.'
+                return f'Version {fmtrel(version, release, args)} not found.'
 
             version = full_version
             vdir = args._versions / version
@@ -894,7 +916,7 @@ class install_:
             if error := install(args, vdir, release, args._distribution, files):
                 return error
 
-            print(f'Version {fmt(version, release, args)} installed.')
+            print(f'Version {fmtrel(version, release, args)} installed.')
 
 
 # COMMAND
@@ -956,9 +978,9 @@ class update_:
 
             if nextver == version and args.keep and release:
                 print(
-                    f'Error: {fmt(version, release, args)} would not be kept '
-                    f'if update to {fmt(nextver, release_target, args)} '
-                    f'distribution="{distribution}"',
+                    f'Error: {fmtrel(version, release, args)} would not be kept '
+                    f'if update to {fmtrel(nextver, release_target, args)} '
+                    f'{fmtdist(distribution, args)}',
                     file=sys.stderr,
                 )
                 continue
@@ -968,9 +990,9 @@ class update_:
                 continue
 
             print(
-                f'{fmt(version, release, args)} updating to '
-                f'{fmt(nextver, release_target, args)} '
-                f'distribution="{distribution}" ..'
+                f'{fmtrel(version, release, args)} updating to '
+                f'{fmtrel(nextver, release_target, args)} '
+                f'{fmtdist(distribution, args)} ..'
             )
 
             # If the source was originally included, then include it in
@@ -1022,7 +1044,7 @@ class remove_:
             release = get_json(dfile).get('release') or '?'
             if not release_del or release == release_del:
                 remove(args, version)
-                print(f'Version {fmt(version, release, args)} removed.')
+                print(f'Version {fmtrel(version, release, args)} removed.')
 
 
 # COMMAND
@@ -1064,7 +1086,8 @@ class list_:
                 continue
 
             release = data.get('release')
-            distribution = data.get('distribution')
+            if not (distribution := data.get('distribution')):
+                distribution = '?'
             upd = ''
             app = ''
             if release_target and release != release_target:
@@ -1084,25 +1107,27 @@ class list_:
                             )
                             app = (
                                 f' not eligible for '
-                                f'update because {fmt(nextver, nrelease, args)} '
+                                f'update because {fmtrel(nextver, nrelease, args)} '
                                 'is already installed.'
                             )
                     else:
                         # May not be updatable if newer release does not support
                         # this same distribution anymore
                         if nextver and distribution in files.get(nextver, {}):
-                            upd = f' updatable to {fmt(nextver, release_target, args)}'
+                            upd = (
+                                f' updatable to {fmtrel(nextver, release_target, args)}'
+                            )
                         elif args.verbose:
                             app = (
                                 ' not eligible for update because '
-                                f'{fmt(nextver, release_target, args)} does '
-                                'not provide '
-                                f'distribution="{distribution}".'
+                                f'{fmtrel(nextver, release_target, args)} does '
+                                f'not provide {fmtdist(distribution, args)}.'
                             )
 
             if release:
                 print(
-                    f'{fmt(version, release, args)}{upd} distribution="{distribution}"{app}'
+                    f'{fmtrel(version, release, args)}{upd} '
+                    f'{fmtdist(distribution, args)}{app}'
                 )
 
 
@@ -1174,14 +1199,13 @@ class show_:
                         args.re_match, f'{version}+{distribution}'
                     ):
                         print(
-                            f'{fmt(version, release, args)} '
-                            f'distribution="{distribution}"{app}'
+                            f'{fmtrel(version, release, args)} '
+                            f'{fmtdist(distribution, args)}{app}'
                         )
         if not installable:
             print(
-                f'Warning: no distribution="{args._distribution}" '
-                'versions found in '
-                f'release "{release}".'
+                f'Warning: no {fmtdist(args._distribution, args)} '
+                f'versions found in release "{release}".'
             )
 
 
