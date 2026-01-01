@@ -850,11 +850,10 @@ def main() -> str | None:
     args._cert = create_cert(args.cert)
 
     # Only allow one instance of this program to run (to read/write prefix and cache dirs)
-    p_lock = filelock.FileLock(prefix_dir / '.lock')
-    c_lock = filelock.FileLock(cache_dir / '.lock')
+    locks = [filelock.FileLock(d / '.lock') for d in (prefix_dir, cache_dir)]
 
     try:
-        with p_lock.acquire(blocking=False), c_lock.acquire(blocking=False):
+        with locks[0].acquire(blocking=False), locks[1].acquire(blocking=False):
             args._release = get_release_tag(args)
             result = args.func(args)
             purge_unused_releases(args)
@@ -867,7 +866,7 @@ def main() -> str | None:
 
 # COMMAND
 class install_:
-    doc = f'Install one or more versions from a {REPO} release.'
+    doc = f'Install one, more, or all versions from a {REPO} release.'
 
     @staticmethod
     def init(parser: ArgumentParser) -> None:
@@ -877,6 +876,21 @@ class install_:
             help=f'install from specified {REPO} '
             f'YYYYMMDD release (e.g. {SAMPL_RELEASE}), '
             'default is latest release',
+        )
+        parser.add_argument(
+            '-a', '--all', action='store_true', help='install ALL versions from release'
+        )
+        parser.add_argument(
+            '-A',
+            '--all-prerelease',
+            action='store_true',
+            help='install ALL versions from release, including pre-releases',
+        )
+        parser.add_argument(
+            '--skip',
+            action='store_true',
+            help='skip the specified versions when '
+            'installing all (only can be specified with --all)',
         )
         parser.add_argument(
             '-f',
@@ -891,7 +905,7 @@ class install_:
             help='also install source files if available in distribution download',
         )
         parser.add_argument(
-            'version', nargs='+', help='version to install. E.g. 3.12 or 3.12.3'
+            'version', nargs='*', help='version to install. E.g. 3.12 or 3.12.3'
         )
 
     @staticmethod
@@ -902,6 +916,31 @@ class install_:
             return f'Release "{release}" not found, or has no compatible files.'
 
         matcher = VersionMatcher(files)
+
+        if args.all_prerelease:
+            args.all = True
+
+        if args.all:
+            if not args.skip and args.version:
+                args.parser.error(
+                    'Can not specify versions with --all unless also specifying --skip.'
+                )
+
+            skips = set(v for ver in args.version if (v := matcher.match(ver)))
+
+            args.version = [
+                v
+                for v in files
+                if (args.all_prerelease or is_release_version(v)) and v not in skips
+            ]
+
+        else:
+            if args.skip:
+                args.parser.error('--skip can only be specified with --all.')
+
+            if not args.version:
+                args.parser.error('Must specify at least one version, or --all.')
+
         for version in args.version:
             full_version = matcher.match(version)
             if not full_version:
@@ -911,7 +950,8 @@ class install_:
             vdir = args._versions / version
 
             if vdir.exists() and not args.force:
-                return f'Version "{version}" is already installed.'
+                print(f'Version {version} is already installed.', file=sys.stderr)
+                continue
 
             if error := install(args, vdir, release, args._distribution, files):
                 return error
@@ -1244,7 +1284,7 @@ class path_:
         else:
             path = args._versions / version
             if not path.exists():
-                return f'Version "{version}" is not installed.'
+                return f'Version {version} is not installed.'
 
             if args.resolve:
                 path = path.resolve()

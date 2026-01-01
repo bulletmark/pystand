@@ -7,14 +7,14 @@ installation, and update of pre-built Python versions from the
 [`python-build-standalone`][pbs] project. The following commands are
 provided:
 
-|Command  |Description                                                         |
-|---------|--------------------------------------------------------------------|
-|`install`|Install one or more versions from a python-build-standalone release.|
-|`update` (or `upgrade`) |Update one, more, or all versions to another release.|
-|`remove` (or `uninstall`) |Remove/uninstall one, more, or all versions.|
-|`list`   |List installed versions and show which have an update available.|
-|`show`   |Show versions available from a release.|
-|`path`   |Show path prefix to installed version base directory.|
+ |Command|Description|
+ |---------|--------------------------------------------------------------------|
+ |`install`|Install one, more, or all versions from a python-build-standalone release.|
+ |`update` (or `upgrade`)|Update one, more, or all versions to another release.|
+ |`remove` (or `uninstall`)|Remove/uninstall one, more, or all versions.|
+ |`list`|List installed versions and show which have an update available.|
+ |`show`|Show versions available from a release.|
+ |`path`|Show path prefix to installed version base directory.|
 
 By default, Python versions are sourced from the latest
 `python-build-standalone` [release][pbs-rel] available (e.g.
@@ -69,6 +69,14 @@ Version 3.10.14 @ 20240415 removed.
 
 $ pystand list
 3.12.3 @ 20240415 distribution="x86_64-unknown-linux-gnu-install_only_stripped"
+
+# Install all available versions from latest release:
+$ pystand install -a
+Version 3.8.19 @ 20240415 installed.
+Version 3.9.19 @ 20240415 installed.
+Version 3.10.14 @ 20240415 installed.
+Version 3.11.9 @ 20240415 installed.
+Version 3.12.3 is already installed.
 ```
 
 Here are some examples showing how to use an installed version ..
@@ -155,8 +163,8 @@ options:
 
 Commands:
   {install,update,upgrade,remove,uninstall,list,show,path,cache}
-    install             Install one or more versions from a python-build-
-                        standalone release.
+    install             Install one, more, or all versions from a python-
+                        build-standalone release.
     update (upgrade)    Update one, more, or all versions to another release.
     remove (uninstall)  Remove/uninstall one, more, or all versions.
     list                List installed versions and show which have an update
@@ -175,9 +183,10 @@ individual command:
 ### Command `install`
 
 ```
-usage: pystand install [-h] [-r RELEASE] [-f] [-s] version [version ...]
+usage: pystand install [-h] [-r RELEASE] [-a] [-A] [--skip] [-f] [-s]
+                          [version ...]
 
-Install one or more versions from a python-build-standalone release.
+Install one, more, or all versions from a python-build-standalone release.
 
 positional arguments:
   version               version to install. E.g. 3.12 or 3.12.3
@@ -188,6 +197,11 @@ options:
                         install from specified python-build-standalone
                         YYYYMMDD release (e.g. 20240415), default is latest
                         release
+  -a, --all             install ALL versions from release
+  -A, --all-prerelease  install ALL versions from release, including pre-
+                        releases
+  --skip                skip the specified versions when installing all (only
+                        can be specified with --all)
   -f, --force           force install even if already installed
   -s, --include-source  also install source files if available in distribution
                         download
