@@ -398,7 +398,11 @@ def fetch_tag_latest(args: Namespace) -> str:
 
 def get_release_tag(args: Namespace) -> str:
     "Return the release tag, or latest if not specified"
-    if hasattr(args, 'release') and (release := args.release):
+    if (
+        hasattr(args, 'release')
+        and (release := args.release)
+        and isinstance(release, str)
+    ):
         if err := check_release_tag(release):
             sys.exit(err)
 
@@ -691,7 +695,9 @@ def show_cache_size(path: Path, args: Namespace) -> None:
         )
         total += size
         size_str = f'{size}B' if args.no_human_readable else to_human(size)
-        name = str(spath) if spath.is_dir() else spath.name
+        name = (
+            str(spath) if spath.is_dir() else f'{spath.parent.name}{os.sep}{spath.name}'
+        )
         print(f'{size_str}\t{name}')
 
     if not args.no_total:
@@ -1340,7 +1346,15 @@ class cache_:
 
         elif args.release:
             for release in args.release:
-                show_cache_size(args._downloads / release, args)
+                # Allow user to include cache path in release name
+                path = (args._downloads / release).expanduser()
+                if err := check_release_tag(path.name):
+                    return err
+
+                if not path.exists():
+                    return f'No cache for release {release}.'
+
+                show_cache_size(path, args)
         else:
             show_cache_size(args._downloads, args)
 
