@@ -315,7 +315,7 @@ options:
 ### Command `cache`
 
 ```
-usage: pystand cache [-h] [-T] [-H] [-r] [release ...]
+usage: pystand cache [-h] [-T] [-H] [-r | -R] [release ...]
 
 Show size of release download caches.
 
@@ -328,6 +328,9 @@ options:
   -H, --no-human-readable
                         show sizes in bytes, not human readable format
   -r, --remove          remove download cache[s] instead of showing size
+  -R, --remove-all-unused
+                        remove caches for all currently unused releases
+                        instead of showing size
 ```
 
 ## Installation and Upgrade

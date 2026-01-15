@@ -180,11 +180,11 @@ def get_gh(args: Namespace) -> Any:
     # Save this handle globally for future use
     from github import Github
 
-    get_gh_handle = Github(auth=auth)  # type: ignore
+    get_gh_handle = Github(auth=auth)
     return get_gh_handle
 
 
-def rm_path(path: Path) -> None:
+def rm_path(path: Path) -> bool:
     "Remove the given path"
     if path.is_symlink():
         path.unlink()
@@ -192,6 +192,10 @@ def rm_path(path: Path) -> None:
         shutil.rmtree(path)
     elif path.exists():
         path.unlink()
+    else:
+        return False
+
+    return True
 
 
 def register_zst() -> None:
@@ -531,9 +535,8 @@ def update_version_symlinks(args: Namespace) -> None:
             (base / name).symlink_to(tgt, target_is_directory=True)
 
 
-def purge_unused_releases(args: Namespace) -> None:
-    "Purge old releases that are no longer needed and have expired"
-    # Want to keep releases for versions that we currently have installed
+def keeplist(args: Namespace) -> set[str]:
+    "Return a set of release names to keep"
     keep = {
         r for v in iter_versions(args) if (r := get_json(v / args._data).get('release'))
     }
@@ -541,6 +544,14 @@ def purge_unused_releases(args: Namespace) -> None:
     # Add current release to keep list (even if not currently installed)
     if args._latest_release.exists():
         keep.add(args._latest_release.read_text().strip())
+
+    return keep
+
+
+def purge_unused_releases(args: Namespace) -> None:
+    "Purge old releases that are no longer needed and have expired"
+    # Want to keep releases for versions that we currently have installed
+    keep = keeplist(args)
 
     # Purge any release lists that are no longer used and have expired
     now_secs = time.time()
@@ -1323,11 +1334,18 @@ class cache_:
             action='store_true',
             help='show sizes in bytes, not human readable format',
         )
-        parser.add_argument(
+        group = parser.add_mutually_exclusive_group()
+        group.add_argument(
             '-r',
             '--remove',
             action='store_true',
             help='remove download cache[s] instead of showing size',
+        )
+        group.add_argument(
+            '-R',
+            '--remove-all-unused',
+            action='store_true',
+            help='remove caches for all currently unused releases instead of showing size',
         )
         parser.add_argument(
             'release', nargs='*', help='show cache size for given release[s] only'
@@ -1335,28 +1353,40 @@ class cache_:
 
     @staticmethod
     def run(args: Namespace) -> str | None:
-        if args.remove:
+        if args.remove_all_unused:
             if args.release:
-                for release in args.release:
-                    rm_path(args._downloads / release)
-            else:
-                rm_path(args._downloads)
+                args.parser.error(
+                    'Can not specify --remove-all-unused with release names.'
+                )
 
-            print('Cache removed.')
+            keep = keeplist(args)
+            for release in args._downloads.iterdir():
+                if (name := release.name) not in keep and name.isdigit():
+                    if rm_path(release):
+                        print(f'Removed cache for release {name}.')
 
         elif args.release:
             for release in args.release:
                 # Allow user to include cache path in release name
                 path = (args._downloads / release).expanduser()
+
                 if err := check_release_tag(path.name):
                     return err
 
                 if not path.exists():
                     return f'No cache for release {release}.'
 
-                show_cache_size(path, args)
+                if args.remove:
+                    if rm_path(args._downloads / release):
+                        print(f'Removed cache for release {release.name}.')
+                else:
+                    show_cache_size(path, args)
         else:
-            show_cache_size(args._downloads, args)
+            if args.remove:
+                if rm_path(args._downloads):
+                    print('Removed download cache.')
+            else:
+                show_cache_size(args._downloads, args)
 
 
 if __name__ == '__main__':
