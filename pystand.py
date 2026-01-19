@@ -969,7 +969,10 @@ class install_:
             vdir = args._versions / version
 
             if vdir.exists() and not args.force:
-                print(f'Version {version} is already installed.', file=sys.stderr)
+                print(
+                    f'Version {args._fmtrel(version, release)} is already installed.',
+                    file=sys.stderr,
+                )
                 continue
 
             if error := install(args, vdir, release, args._distribution, files):
