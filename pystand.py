@@ -14,6 +14,7 @@ import platform
 import re
 import shutil
 import ssl
+import subprocess
 import sys
 import time
 from collections import defaultdict
@@ -134,6 +135,12 @@ def get_version() -> str:
         ver = 'unknown'
 
     return ver
+
+
+def get_major_version(args: Namespace) -> str | None:
+    '"Return the latest major version installed"'
+    vers = sorted(f.name for f in args._versions.glob('[3-9]'))
+    return vers[-1] if vers else None
 
 
 def get_json(file: Path) -> dict[str, Any]:
@@ -631,7 +638,6 @@ def remove(args: Namespace, version: str) -> None:
 
 def strip_binaries(vdir: Path, distribution: str) -> bool:
     "Strip binaries from files in a version directory"
-    from subprocess import DEVNULL, run
 
     # Only run the strip command on Linux hosts and for Linux distributions
     was_stripped = False
@@ -645,7 +651,7 @@ def strip_binaries(vdir: Path, distribution: str) -> bool:
                 if not file.is_symlink() and file.is_file():
                     cmd = f'strip -p --strip-unneeded {file}'.split()
                     try:
-                        run(cmd, stderr=DEVNULL)
+                        subprocess.run(cmd, stderr=subprocess.DEVNULL)
                     except Exception:
                         pass
                     else:
@@ -732,6 +738,23 @@ def create_cert(option: str) -> ssl.SSLContext | None:
 
     assert option == 'none'
     return ssl._create_unverified_context()
+
+
+def run_uv(args: Namespace, cmd: list[str], cmdopts: list[str]) -> str | None:
+    "Run a uv command with the specified or latest installed python version"
+    if not (vers := (args.python or get_major_version(args))):
+        return 'No installed python version found.'
+
+    py = args._versions / vers
+    if not py.is_dir():
+        return f'No installed python {py.name} version found.'
+
+    # Resolve to at least minor version if only major version specified
+    if '.' not in py.name:
+        py = py.resolve()
+        py = py.with_name(py.stem)
+
+    subprocess.run(cmd + ['-p', py] + cmdopts)
 
 
 def main() -> str | None:
@@ -1393,6 +1416,60 @@ class cache_:
                     print('Removed download cache.')
             else:
                 show_cache_size(args._downloads, args)
+
+
+# COMMAND
+class uv_:
+    __doc__ = f'Run a uv command using a version of python installed by {PROG}.'
+
+    @staticmethod
+    def init(parser: ArgumentParser) -> None:
+        parser.add_argument(
+            '-p',
+            '--python',
+            help='version of python to use, e.g. "3.12", default is latest release version',
+        )
+
+        parser.add_argument('command', help='uv command to run')
+        parser.add_argument('subcommand', nargs='?', help='optional uv sub-command')
+
+        parser.add_argument(
+            'uv_args_for_command',
+            nargs='*',
+            help='optional extra arguments to pass to uv command [sub-command], start any options with "-- "',
+        )
+
+    @staticmethod
+    def run(args: Namespace) -> str | None:
+        cmd = ['uv', args.command]
+        if args.subcommand:
+            cmd.append(args.subcommand)
+
+        return run_uv(args, cmd, args.uv_args_for_command)
+
+
+# COMMAND
+class uvx_:
+    __doc__ = f'Run a program using uvx and a version of python installed by {PROG}.'
+
+    @staticmethod
+    def init(parser: ArgumentParser) -> None:
+        parser.add_argument(
+            '-p',
+            '--python',
+            help='version of python to use, e.g. "3.12", default is latest release version',
+        )
+
+        parser.add_argument('program', help='uvx program to run')
+        parser.add_argument(
+            'uvx_args_for_program',
+            nargs='*',
+            help='optional extra arguments to pass to uvx program, start any options with "-- "',
+        )
+
+    @staticmethod
+    def run(args: Namespace) -> str | None:
+        return run_uv(args, ['uvx'], [args.program] + args.uvx_args_for_program)
 
 
 if __name__ == '__main__':

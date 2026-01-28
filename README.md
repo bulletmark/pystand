@@ -15,6 +15,9 @@ provided:
  |`list`|List installed versions and show which have an update available.|
  |`show`|Show versions available from a release.|
  |`path`|Show path prefix to installed version base directory.|
+ |`cache`|Show size of release download caches.|
+ |`uv`|Run a uv command using a version of python installed by pystand.|
+ |`uvx`|Run a program using uvx and a version of python installed by pystand.|
 
 By default, Python versions are sourced from the latest
 `python-build-standalone` [release][pbs-rel] available (e.g.
@@ -82,11 +85,11 @@ Version 3.12.3 is already installed.
 Here are some examples showing how to use an installed version ..
 
 ```sh
-# Use uv to create a virtual environment to be run with latest pystand
+# Use uv to create a virtual environment to be run with pystand
 # installed python 3.12:
 $ uv venv -p $(pystand path 3.12) myenv
 
-# Create a regular virtual environment to be run with latest pystand
+# Create a regular virtual environment to be run with pystand
 # installed python 3.12:
 $ $(pystand path -p 3.12) -m venv myenv
 
@@ -122,7 +125,7 @@ usage: pystand [-h] [-D DISTRIBUTION] [-P PREFIX_DIR] [-C CACHE_DIR]
                   [-M CACHE_MINUTES] [--purge-days PURGE_DAYS]
                   [--github-access-token GITHUB_ACCESS_TOKEN] [--no-strip]
                   [--no-color] [--cert {system,certifi,none}] [-V]
-                  {install,update,upgrade,remove,uninstall,list,show,path,cache} ...
+                  {install,update,upgrade,remove,uninstall,list,show,path,cache,uv,uvx} ...
 
 Command line tool to download, install, and update pre-built Python versions
 from the python-build-standalone project at https://github.com/astral-
@@ -162,7 +165,7 @@ options:
   -V, --version         just show pystand version
 
 Commands:
-  {install,update,upgrade,remove,uninstall,list,show,path,cache}
+  {install,update,upgrade,remove,uninstall,list,show,path,cache,uv,uvx}
     install             Install one, more, or all versions from a python-
                         build-standalone release.
     update (upgrade)    Update one, more, or all versions to another release.
@@ -172,6 +175,10 @@ Commands:
     show                Show versions available from a release.
     path                Show path prefix to installed version base directory.
     cache               Show size of release download caches.
+    uv                  Run a uv command using a version of python installed
+                        by pystand.
+    uvx                 Run a program using uvx and a version of python
+                        installed by pystand.
 
 Some commands offer aliases as shown in parentheses above. Note you can set
 default starting global options in ~/.config/pystand-flags.conf.
@@ -331,6 +338,44 @@ options:
   -R, --remove-all-unused
                         remove caches for all currently unused releases
                         instead of showing size
+```
+
+### Command `uv`
+
+```
+usage: pystand uv [-h] [-p PYTHON]
+                     command [subcommand] [uv_args_for_command ...]
+
+Run a uv command using a version of python installed by pystand.
+
+positional arguments:
+  command              uv command to run
+  subcommand           optional uv sub-command
+  uv_args_for_command  optional extra arguments to pass to uv command [sub-
+                       command], start any options with "-- "
+
+options:
+  -h, --help           show this help message and exit
+  -p, --python PYTHON  version of python to use, e.g. "3.12", default is
+                       latest release version
+```
+
+### Command `uvx`
+
+```
+usage: pystand uvx [-h] [-p PYTHON] program [uvx_args_for_program ...]
+
+Run a program using uvx and a version of python installed by pystand.
+
+positional arguments:
+  program               uvx program to run
+  uvx_args_for_program  optional extra arguments to pass to uvx program, start
+                        any options with "-- "
+
+options:
+  -h, --help            show this help message and exit
+  -p, --python PYTHON   version of python to use, e.g. "3.12", default is
+                        latest release version
 ```
 
 ## Installation and Upgrade
@@ -603,13 +648,61 @@ The available options are:
 Specify the option on the command line with `--cert`, or set that as a [default
 option](#command-default-options).
 
+## Direct Usage with UV Tool
+
+Many [`uv`][uv] commands accept a `-p/--python` option to specify a Python
+version or path. To use a `pystand` installed Python version, instead of the
+`uv` maintained or system python, you can use one of the following approaches:
+
+E.g. To create a `uv venv` using `pystand` installed 3.12, just hard code the
+path directly, e.g. for a Linux platform:
+
+```sh
+uv venv -p ~/.local/share/pystand/3.12
+```
+
+Or, specify the path using pystand itself:
+
+```sh
+uv venv -p $(pystand path 3.12)
+```
+
+Or, use the `pystand uv` wrapper command:
+
+```sh
+pystand uv venv -p 3.12
+```
+
+For the common case where you simply want to use the latest `pystand` Python
+release you can omit the `-p` option (and `pystand` will specify it to `uv`
+under the hood): :
+
+```sh
+pystand uv venv
+```
+
+Note if you use the `pystand uv` wrapper, and want to specify switches to the
+`uv` command, you must use `--` to separate `uv` arguments from `pystand uv`
+arguments. E.g.:
+
+```sh
+pystand uv tool install -p 3.12 cowsay -- --verbose
+```
+
+`pystand` also provides a similar wrapper command `pystand uvx` for [`uvx`][uvx]
+commands.
+
+An example where this functionality may be handy is to conveniently test
+various tools against free-threaded or other Python builds from Python Build
+Standalone releases.
+
 ## Command Line Tab Completion
 
 Command line shell [tab
 completion](https://en.wikipedia.org/wiki/Command-line_completion) is
 automatically enabled on `pystand` commands and options using
-[`argcomplete`](https://github.com/kislyuk/argcomplete). You may need to
-first (once-only) [activate argcomplete global
+[`argcomplete`](https://github.com/kislyuk/argcomplete). You may need to first
+(once-only) [activate argcomplete global
 completion](https://github.com/kislyuk/argcomplete#global-completion).
 
 ## License
@@ -629,6 +722,8 @@ FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License at
 [pbs-rel]: https://github.com/astral-sh/python-build-standalone/releases
 [pipx]: https://github.com/pypa/pipx
 [pipxu]: https://github.com/bulletmark/pipxu
+[uv]: https://docs.astral.sh/uv
+[uvx]: https://docs.astral.sh/uv/guides/tools/#running-tools
 [uvtool]: https://docs.astral.sh/uv/guides/tools/#installing-tools
 [pyenv]: https://github.com/pyenv/pyenv
 [pdm]: https://pdm-project.org/
