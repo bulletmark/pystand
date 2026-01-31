@@ -615,7 +615,8 @@ supported options.
 
 The global options: `--distribution`, `--prefix-dir`, `--cache-dir`,
 `--cache-minutes`, `--purge-days`, `--github-access-token`, `--no-strip`,
-`--cert` are the only sensible candidates to consider setting as defaults.
+`--no-color`, and `--cert` are the only sensible candidates to consider setting
+as defaults.
 
 ## Github API Rate Limiting
 
