@@ -142,10 +142,10 @@ options:
                         standalone/main/
   -P, --prefix-dir PREFIX_DIR
                         specify prefix dir for storing versions. Default is
-                        "$HOME/.local/share/pystand".
+                        "~/.local/share/pystand".
   -C, --cache-dir CACHE_DIR
                         specify cache dir for downloads. Default is
-                        "$HOME/.cache/pystand".
+                        "~/.cache/pystand".
   -M, --cache-minutes CACHE_MINUTES
                         cache latest YYYYMMDD release tag fetch for this many
                         minutes, before rechecking for latest. Default is 60

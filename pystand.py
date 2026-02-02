@@ -115,6 +115,14 @@ class ColorDist(ColorTable):
         return text.split('-', 1)[0]
 
 
+def unexpanduser(path: Path, *, home=Path.home()) -> Path:
+    "Return path name, with $HOME replaced by ~ (opposite of Path.expanduser())"
+    if path.parts[: len(home.parts)] == home.parts:
+        return Path('~', *path.parts[len(home.parts) :])
+
+    return path
+
+
 def is_admin() -> bool:
     "Check if we are running as root"
     if platform.system() == 'Windows':
@@ -763,8 +771,8 @@ def main() -> str | None:
     distro_help = distro_default or '?unknown?'
 
     p = '/opt' if is_admin() else platformdirs.user_data_dir()
-    prefix_dir = str(Path(p, PROG))
-    cache_dir = platformdirs.user_cache_path() / PROG
+    prefix_dir = unexpanduser(Path(p, PROG))
+    cache_dir = unexpanduser(platformdirs.user_cache_path() / PROG)
 
     # Parse arguments
     opt = ArgumentParser(
@@ -783,7 +791,7 @@ def main() -> str | None:
     opt.add_argument(
         '-P',
         '--prefix-dir',
-        default=prefix_dir,
+        default=str(prefix_dir),
         help='specify prefix dir for storing versions. Default is "%(default)s".',
     )
     opt.add_argument(
