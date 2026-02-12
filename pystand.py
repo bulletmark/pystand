@@ -28,6 +28,7 @@ import argcomplete
 import filelock
 import platformdirs
 from argparse_from_file import ArgumentParser, Namespace
+from packaging.version import InvalidVersion
 from packaging.version import parse as parse_version
 
 REPO = 'python-build-standalone'
@@ -597,6 +598,12 @@ def show_list(args: Namespace) -> None:
         if args.re_match and not re.search(args.re_match, release):
             continue
 
+        # Ignore any bogus releases that don't parse as versions
+        try:
+            this_version = parse_version(release)
+        except InvalidVersion:
+            continue
+
         if dt_str := releases.get(release):
             dts = (
                 datetime.fromisoformat(dt_str)
@@ -613,8 +620,7 @@ def show_list(args: Namespace) -> None:
         else:
             app = ''
 
-        pre = ' pre-release' if parse_version(release) > latest else ''
-
+        pre = ' pre-release' if this_version > latest else ''
         print(f'{release} {dts}{app}{pre}')
 
 
