@@ -125,7 +125,7 @@ usage: pystand [-h] [-D DISTRIBUTION] [-P PREFIX_DIR] [-C CACHE_DIR]
                   [-M CACHE_MINUTES] [--purge-days PURGE_DAYS]
                   [--github-access-token GITHUB_ACCESS_TOKEN] [--no-strip]
                   [--no-color] [--cert {system,certifi,none}] [-V]
-                  {install,update,upgrade,remove,uninstall,list,show,path,cache,uv,uvx} ...
+                  {install,i,update,u,upgrade,remove,r,uninstall,list,l,show,s,path,p,cache,c,uv,uvx} ...
 
 Command line tool to download, install, and update pre-built Python versions
 from the python-build-standalone project at https://github.com/astral-
@@ -165,16 +165,18 @@ options:
   -V, --version         just show pystand version
 
 Commands:
-  {install,update,upgrade,remove,uninstall,list,show,path,cache,uv,uvx}
-    install             Install one, more, or all versions from a python-
+  {install,i,update,u,upgrade,remove,r,uninstall,list,l,show,s,path,p,cache,c,uv,uvx}
+    install (i)         Install one, more, or all versions from a python-
                         build-standalone release.
-    update (upgrade)    Update one, more, or all versions to another release.
-    remove (uninstall)  Remove/uninstall one, more, or all versions.
-    list                List installed versions and show which have an update
+    update (u, upgrade)
+                        Update one, more, or all versions to another release.
+    remove (r, uninstall)
+                        Remove/uninstall one, more, or all versions.
+    list (l)            List installed versions and show which have an update
                         available.
-    show                Show versions available from a release.
-    path                Show path prefix to installed version base directory.
-    cache               Show size of release download caches.
+    show (s)            Show versions available from a release.
+    path (p)            Show path prefix to installed version base directory.
+    cache (c)           Show size of release download caches.
     uv                  Run a uv command using a version of python installed
                         by pystand.
     uvx                 Run a program using uvx and a version of python
@@ -212,6 +214,8 @@ options:
   -f, --force           force install even if already installed
   -s, --include-source  also install source files if available in distribution
                         download
+
+aliases: i
 ```
 
 ### Command `update`
@@ -235,7 +239,7 @@ options:
   -k, --keep            keep old version after updating (but only if different
                         version number)
 
-aliases: upgrade
+aliases: u, upgrade
 ```
 
 ### Command `remove`
@@ -257,7 +261,7 @@ options:
                         only remove versions if from specified YYYMMDD release
                         (e.g. 20240415)
 
-aliases: uninstall
+aliases: r, uninstall
 ```
 
 ### Command `list`
@@ -277,6 +281,8 @@ options:
   -r, --release RELEASE
                         use specified YYYYMMDD release (e.g. 20240415) for
                         verbose compare, default is latest release
+
+aliases: l
 ```
 
 ### Command `show`
@@ -300,6 +306,8 @@ options:
                         20240415), default is latest release
   -a, --all             show all available distributions for each version from
                         the release
+
+aliases: s
 ```
 
 ### Command `path`
@@ -317,6 +325,8 @@ options:
   -p, --python-path  add path to python executable
   -r, --resolve      fully resolve given version
   -c, --cache-path   just show path to cache dir
+
+aliases: p
 ```
 
 ### Command `cache`
@@ -338,6 +348,8 @@ options:
   -R, --remove-all-unused
                         remove caches for all currently unused releases
                         instead of showing size
+
+aliases: c
 ```
 
 ### Command `uv`
@@ -696,15 +708,6 @@ commands.
 An example where this functionality may be handy is to conveniently test
 various tools against free-threaded or other Python builds from Python Build
 Standalone releases.
-
-## Command Line Tab Completion
-
-Command line shell [tab
-completion](https://en.wikipedia.org/wiki/Command-line_completion) is
-automatically enabled on `pystand` commands and options using
-[`argcomplete`](https://github.com/kislyuk/argcomplete). You may need to first
-(once-only) [activate argcomplete global
-completion](https://github.com/kislyuk/argcomplete#global-completion).
 
 ## License
 

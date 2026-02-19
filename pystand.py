@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-# PYTHON_ARGCOMPLETE_OK
 """
 Command line tool to download, install, and update pre-built Python
 versions from the python-build-standalone project at
@@ -24,7 +23,6 @@ from pathlib import Path
 from typing import Any
 from urllib.request import urlopen
 
-import argcomplete
 import filelock
 import platformdirs
 from argparse_from_file import ArgumentParser, Namespace
@@ -869,8 +867,6 @@ def main() -> str | None:
         # Set the function to call
         cmdopt.set_defaults(func=cls.run, name=name, parser=cmdopt)
 
-    # Command arguments are now defined, so we can set up argcomplete
-    argcomplete.autocomplete(opt)
     args = opt.parse_args()
 
     if 'func' not in args:
@@ -926,6 +922,7 @@ def main() -> str | None:
 # COMMAND
 class install_:
     doc = f'Install one, more, or all versions from a {REPO} release.'
+    aliases = ['i']
 
     @staticmethod
     def init(parser: ArgumentParser) -> None:
@@ -1025,7 +1022,7 @@ class install_:
 class update_:
     "Update one, more, or all versions to another release."
 
-    aliases = ['upgrade']
+    aliases = ['u', 'upgrade']
 
     @staticmethod
     def init(parser: ArgumentParser) -> None:
@@ -1112,7 +1109,7 @@ class update_:
 class remove_:
     "Remove/uninstall one, more, or all versions."
 
-    aliases = ['uninstall']
+    aliases = ['r', 'uninstall']
 
     @staticmethod
     def init(parser: ArgumentParser) -> None:
@@ -1152,6 +1149,8 @@ class remove_:
 # COMMAND
 class list_:
     "List installed versions and show which have an update available."
+
+    aliases = ['l']
 
     @staticmethod
     def init(parser: ArgumentParser) -> None:
@@ -1241,6 +1240,7 @@ class show_:
     View available releases and their distributions at
     {GITHUB_SITE}/releases.
     """
+    aliases = ['s']
 
     @staticmethod
     def init(parser: ArgumentParser) -> None:
@@ -1315,6 +1315,8 @@ class show_:
 class path_:
     "Show path prefix to installed version base directory."
 
+    aliases = ['p']
+
     @staticmethod
     def init(parser: ArgumentParser) -> None:
         parser.add_argument(
@@ -1365,6 +1367,8 @@ class path_:
 # COMMAND
 class cache_:
     "Show size of release download caches."
+
+    aliases = ['c']
 
     @staticmethod
     def init(parser: ArgumentParser) -> None:

@@ -14,7 +14,6 @@ classifiers = [
 ]
 dynamic = ["version"]
 dependencies = [
-  "argcomplete",
   "packaging",
   "platformdirs",
   "argparse-from-file",
