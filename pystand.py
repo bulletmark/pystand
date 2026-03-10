@@ -388,10 +388,11 @@ def check_release_tag(release: str) -> str | None:
 # Note we use a simple direct URL fetch to get the latest tag info
 # because it is much faster than using the GitHub API, and has no
 # rate-limits.
-def fetch_tags(args: Namespace) -> Iterator[tuple[str, str]]:
+def fetch_tags(args: Namespace) -> dict[str, str]:
     "Fetch the latest release tags from the GitHub release atom feed"
     import xml.etree.ElementTree as et
 
+    tags = {}
     try:
         with urlopen(LATEST_RELEASES, context=args._cert) as url:
             data = et.parse(url).getroot()
@@ -403,7 +404,9 @@ def fetch_tags(args: Namespace) -> Iterator[tuple[str, str]]:
             tl = entry.findtext('{http://www.w3.org/2005/Atom}title')
             dt = entry.findtext('{http://www.w3.org/2005/Atom}updated')
             if tl and dt:
-                yield tl, dt
+                tags[tl.split(':', 1)[0]] = dt
+
+    return tags
 
 
 def fetch_tag_latest(args: Namespace) -> str:
@@ -590,7 +593,7 @@ def purge_unused_releases(args: Namespace) -> None:
 def show_list(args: Namespace) -> None:
     "Show a list of available releases"
     latest = parse_version(args._release)
-    releases = {r: d for r, d in fetch_tags(args)}
+    releases = fetch_tags(args)
     cached = set(p.name for p in args._releases.iterdir())
     for release in sorted(cached.union(releases)):
         if args.re_match and not re.search(args.re_match, release):
