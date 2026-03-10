@@ -603,6 +603,7 @@ def show_list(args: Namespace) -> None:
         try:
             this_version = parse_version(release)
         except InvalidVersion:
+            print(f'Invalid release tag: "{release}"', file=sys.stderr)
             continue
 
         if dt_str := releases.get(release):
