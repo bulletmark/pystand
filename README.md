@@ -7,17 +7,17 @@ installation, and update of pre-built Python versions from the
 [`python-build-standalone`][pbs] project. The following commands are
 provided:
 
- |Command|Description|
- |---------|--------------------------------------------------------------------|
- |`install`|Install one, more, or all versions from a python-build-standalone release.|
- |`update` (or `upgrade`)|Update one, more, or all versions to another release.|
- |`remove` (or `uninstall`)|Remove/uninstall one, more, or all versions.|
- |`list`|List installed versions and show which have an update available.|
- |`show`|Show versions available from a release.|
- |`path`|Show path prefix to installed version base directory.|
- |`cache`|Show size of release download caches.|
- |`uv`|Run a uv command using a version of python installed by pystand.|
- |`uvx`|Run a program using uvx and a version of python installed by pystand.|
+  |Command  |Aliases  |Description |
+  |---------|---------|------------|
+  |`install`|`i`      |Install one, more, or all versions from a python-build-standalone release|
+  |`update` |`u`, `up`|Update one, more, or all versions to another releas |
+  |`remove` |`r`, `rm`|Remove/uninstall one, more, or all versions|
+  |`list`   |`l`      |List installed versions and show which have an update available|
+  |`show`   |`s`      |Show versions available from a release|
+  |`path`   |`p`      |Show path prefix to installed version base directory|
+  |`cache`  |`c`      |Show size of release download caches|
+  |`uv`     |         |Run a uv command using a version of python installed by pystand|
+  |`uvx`    |         |Run a program using uvx and a version of python installed by pystand|
 
 By default, Python versions are sourced from the latest
 `python-build-standalone` [release][pbs-rel] available (e.g.
@@ -125,7 +125,7 @@ usage: pystand [-h] [-D DISTRIBUTION] [-P PREFIX_DIR] [-C CACHE_DIR]
                   [-M CACHE_MINUTES] [--purge-days PURGE_DAYS]
                   [--github-access-token GITHUB_ACCESS_TOKEN] [--no-strip]
                   [--no-color] [--cert {system,certifi,none}] [-V]
-                  {install,i,update,u,upgrade,remove,r,uninstall,list,l,show,s,path,p,cache,c,uv,uvx} ...
+                  {install,i,update,u,up,remove,r,rm,list,l,show,s,path,p,cache,c,uv,uvx} ...
 
 Command line tool to download, install, and update pre-built Python versions
 from the python-build-standalone project at https://github.com/astral-
@@ -165,13 +165,11 @@ options:
   -V, --version         just show pystand version
 
 Commands:
-  {install,i,update,u,upgrade,remove,r,uninstall,list,l,show,s,path,p,cache,c,uv,uvx}
+  {install,i,update,u,up,remove,r,rm,list,l,show,s,path,p,cache,c,uv,uvx}
     install (i)         Install one, more, or all versions from a python-
                         build-standalone release.
-    update (u, upgrade)
-                        Update one, more, or all versions to another release.
-    remove (r, uninstall)
-                        Remove/uninstall one, more, or all versions.
+    update (u, up)      Update one, more, or all versions to another release.
+    remove (r, rm)      Remove/uninstall one, more, or all versions.
     list (l)            List installed versions and show which have an update
                         available.
     show (s)            Show versions available from a release.
@@ -239,7 +237,7 @@ options:
   -k, --keep            keep old version after updating (but only if different
                         version number)
 
-aliases: u, upgrade
+aliases: u, up
 ```
 
 ### Command `remove`
@@ -261,7 +259,7 @@ options:
                         only remove versions if from specified YYYMMDD release
                         (e.g. 20240415)
 
-aliases: r, uninstall
+aliases: r, rm
 ```
 
 ### Command `list`

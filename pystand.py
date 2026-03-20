@@ -1026,7 +1026,7 @@ class install_:
 class update_:
     "Update one, more, or all versions to another release."
 
-    aliases = ['u', 'upgrade']
+    aliases = ['u', 'up']
 
     @staticmethod
     def init(parser: ArgumentParser) -> None:
@@ -1113,7 +1113,7 @@ class update_:
 class remove_:
     "Remove/uninstall one, more, or all versions."
 
-    aliases = ['r', 'uninstall']
+    aliases = ['r', 'rm']
 
     @staticmethod
     def init(parser: ArgumentParser) -> None:
