@@ -1399,11 +1399,20 @@ class cache_:
             help='remove caches for all currently unused releases instead of showing size',
         )
         parser.add_argument(
+            '-f',
+            '--file',
+            action='store_true',
+            help='also remove cached release file list when removing download caches',
+        )
+        parser.add_argument(
             'release', nargs='*', help='show cache size for given release[s] only'
         )
 
     @staticmethod
     def run(args: Namespace) -> str | None:
+        if args.file and not (args.remove or args.remove_all_unused):
+            args.parser.error('The -f/--file option only applies when removing.')
+
         if args.remove_all_unused:
             if args.release:
                 args.parser.error(
@@ -1411,31 +1420,49 @@ class cache_:
                 )
 
             keep = keeplist(args)
-            for release in args._downloads.iterdir():
-                if (name := release.name) not in keep and name.isdigit():
-                    if rm_path(release):
-                        print(f'Removed cache for release {name}.')
+            releases = set(
+                p.name for p in args._downloads.iterdir() if p.name.isdigit()
+            )
+            releases.update(
+                p.name for p in args._releases.iterdir() if p.name.isdigit()
+            )
+            for release in sorted(releases):
+                if release not in keep:
+                    if rm_path(args._downloads / release):
+                        print(f'Removed download cache for release {release}.')
+                    if args.file and rm_path(args._releases / release):
+                        print(f'Removed file list cache for release {release}.')
 
         elif args.release:
             for release in args.release:
                 # Allow user to include cache path in release name
                 path = (args._downloads / release).expanduser()
+                release = path.name
 
-                if err := check_release_tag(path.name):
+                if err := check_release_tag(release):
                     return err
 
-                if not path.exists():
-                    return f'No cache for release {release}.'
-
                 if args.remove:
-                    if rm_path(args._downloads / release):
-                        print(f'Removed cache for release {release.name}.')
+                    removed = False
+                    if rm_path(path):
+                        print(f'Removed download cache for release {release}.')
+                        removed = True
+
+                    if args.file and rm_path((args._releases / release).expanduser()):
+                        print(f'Removed file list cache for release {release}.')
+                        removed = True
+
+                    if not removed:
+                        print(f'No caches found for release {release}.')
+
                 else:
                     show_cache_size(path, args)
         else:
             if args.remove:
                 if rm_path(args._downloads):
                     print('Removed download cache.')
+                    if args.file and rm_path(args._releases):
+                        print('Removed file lists cache.')
             else:
                 show_cache_size(args._downloads, args)
 

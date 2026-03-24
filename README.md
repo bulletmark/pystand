@@ -330,7 +330,7 @@ aliases: p
 ### Command `cache`
 
 ```
-usage: pystand cache [-h] [-T] [-H] [-r | -R] [release ...]
+usage: pystand cache [-h] [-T] [-H] [-r | -R] [-f] [release ...]
 
 Show size of release download caches.
 
@@ -346,6 +346,8 @@ options:
   -R, --remove-all-unused
                         remove caches for all currently unused releases
                         instead of showing size
+  -f, --file            also remove cached release file list when removing
+                        download caches
 
 aliases: c
 ```
