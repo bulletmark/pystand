@@ -574,14 +574,15 @@ def purge_unused_releases(args: Namespace) -> None:
     keep = keeplist(args)
 
     # Purge any release lists that are no longer used and have expired
-    now_secs = time.time()
-    end_secs = args.purge_days * 86400
-    for path in args._releases.iterdir():
-        if path.name not in keep:
-            if (path.stat().st_mtime + end_secs) < now_secs:
-                path.unlink()
-            else:
-                keep.add(path.name)
+    if args._releases.is_dir():
+        now_secs = time.time()
+        end_secs = args.purge_days * 86400
+        for path in args._releases.iterdir():
+            if path.name not in keep:
+                if (path.stat().st_mtime + end_secs) < now_secs:
+                    path.unlink()
+                else:
+                    keep.add(path.name)
 
     # Purge any downloads for releases that have expired
     if args._downloads.is_dir():
@@ -1461,8 +1462,8 @@ class cache_:
             if args.remove:
                 if rm_path(args._downloads):
                     print('Removed download cache.')
-                    if args.file and rm_path(args._releases):
-                        print('Removed file lists cache.')
+                if args.file and rm_path(args._releases):
+                    print('Removed file lists cache.')
             else:
                 show_cache_size(args._downloads, args)
 
