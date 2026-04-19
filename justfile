@@ -1,23 +1,26 @@
-PYFILES := file_name(justfile_directory()) + '.py'
+PYFILES := `echo *.py`
 
 check:
-	ruff check {{PYFILES}}
-	ty check --python /usr/bin/python {{PYFILES}}
-	vermin -vv --no-tips -i {{PYFILES}}
-	md-link-checker
+  python check-dist.py
+  ruff check {{PYFILES}}
+  ty check --python /usr/bin/python {{PYFILES}}
+  vermin -vv --no-tips -i {{PYFILES}}
+  md-link-checker
 
 build:
-	rm -rf dist
-	uv build
+  rm -rf dist
+  uv build
 
 upload: build
-	uv-publish
+  uv-publish
 
 doc:
-	update-readme-usage -A
+  update-readme-usage -A
 
 format:
-	ruff check --select I --fix {{PYFILES}} && ruff format {{PYFILES}}
+  ruff check --select I --fix {{PYFILES}} && ruff format {{PYFILES}}
 
 clean:
-	@rm -vrf *.egg-info build/ dist/ __pycache__/
+  @rm -vrf *.egg-info build/ dist/ __pycache__/
+
+# vim: set sw=2:

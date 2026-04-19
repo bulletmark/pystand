@@ -51,8 +51,8 @@ DISTRIBUTIONS = {
     ('Darwin', 'x86_64'): 'x86_64-apple-darwin-install_only_stripped',
     ('Darwin', 'aarch64'): 'aarch64-apple-darwin-install_only_stripped',
     ('Darwin', 'arm64'): 'aarch64-apple-darwin-install_only_stripped',
-    ('Windows', 'x86_64'): 'x86_64-pc-windows-msvc-shared-install_only_stripped',
-    ('Windows', 'i686'): 'i686-pc-windows-msvc-shared-install_only_stripped',
+    ('Windows', 'x86_64'): 'x86_64-pc-windows-msvc-install_only_stripped',
+    ('Windows', 'i686'): 'i686-pc-windows-msvc-install_only_stripped',
     ('Windows', 'aarch64'): 'aarch64-pc-windows-msvc-install_only_stripped',
     ('Windows', 'arm64'): 'aarch64-pc-windows-msvc-install_only_stripped',
 }
