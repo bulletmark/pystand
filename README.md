@@ -219,7 +219,8 @@ aliases: i
 ### Command `update`
 
 ```
-usage: pystand update [-h] [-r RELEASE] [-a] [--skip] [-k] [version ...]
+usage: pystand update [-h] [-r RELEASE] [-a] [--pre-release] [--skip] [-k]
+                         [version ...]
 
 Update one, more, or all versions to another release.
 
@@ -232,6 +233,8 @@ options:
                         update to specified YYYMMDD release (e.g. 20240415),
                         default is latest release
   -a, --all             update ALL versions
+  --pre-release         update release version to a later superceding pre-
+                        release
   --skip                skip the specified versions when updating all (only
                         can be specified with --all)
   -k, --keep            keep old version after updating (but only if different

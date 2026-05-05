@@ -296,7 +296,13 @@ class VersionMatcher:
     def __init__(self, seq: Iterable[str]) -> None:
         self.seq = sorted(seq, key=parse_version, reverse=True)
 
-    def match(self, version: str | None, *, upgrade: bool = False) -> str | None:
+    def match(
+        self,
+        version: str | None,
+        *,
+        upgrade: bool = False,
+        allow_prelease: bool = False,
+    ) -> str | None:
         "Return full version string given a [possibly] part version prefix"
 
         # If no version specified, return the latest release version
@@ -309,7 +315,7 @@ class VersionMatcher:
         if version in self.seq:
             return version
 
-        is_release = is_release_version(version)
+        is_release = not allow_prelease and is_release_version(version)
         major_only = '.' not in version
 
         if major_only:
@@ -1041,6 +1047,11 @@ class update_:
             '-a', '--all', action='store_true', help='update ALL versions'
         )
         parser.add_argument(
+            '--pre-release',
+            action='store_true',
+            help='update release version to a later superceding pre-release',
+        )
+        parser.add_argument(
             '--skip',
             action='store_true',
             help='skip the specified versions when '
@@ -1065,6 +1076,7 @@ class update_:
             return f'Release "{release_target}" not found.'
 
         matcher = VersionMatcher(files)
+
         for version in get_version_names(args):
             vdir = args._versions / version
             if not (data := get_json(vdir / args._data)):
@@ -1073,7 +1085,10 @@ class update_:
             if (release := data.get('release')) == release_target:
                 continue
 
-            if not (nextver := matcher.match(version, upgrade=True)):
+            nextver = matcher.match(
+                version, upgrade=True, allow_prelease=args.pre_release
+            )
+            if not nextver:
                 continue
 
             distribution = data.get('distribution')
