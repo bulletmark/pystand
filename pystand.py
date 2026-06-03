@@ -215,23 +215,6 @@ def rm_path(path: Path) -> bool:
     return True
 
 
-def register_zst() -> None:
-    "Register custom zstandard unpacker"
-    import tarfile
-
-    from zstandard import ZstdDecompressor
-
-    def unpack_zst(filename: str, extract_dir: str) -> None:
-        "Unpack a zstandard compressed tar"
-        with open(filename, 'rb') as compressed:
-            dctx = ZstdDecompressor()
-            with dctx.stream_reader(compressed) as reader:
-                with tarfile.open(fileobj=reader, mode='r|') as tar:
-                    tar.extractall(path=extract_dir)
-
-    shutil.register_unpack_format('zst', ['.zst'], unpack_zst)
-
-
 def fetch(args: Namespace, release: str, url: str, tdir: Path) -> str | None:
     "Fetch and unpack a release file"
     from urllib.parse import unquote, urlparse
@@ -256,9 +239,11 @@ def fetch(args: Namespace, release: str, url: str, tdir: Path) -> str | None:
     if error:
         rm_path(cache_file)
     else:
-        # Register custom zstandard handler (only if Python < 3.14 which has built-in support)
+        # Register external zstd handler (only if Python < 3.14 which has
+        # built-in support)
         if filename.endswith('.zst') and sys.version_info < (3, 14):
-            register_zst()
+            from backports.zstd import register_shutil  # type: ignore
+            register_shutil()
 
         try:
             shutil.unpack_archive(cache_file, tmpdir)
