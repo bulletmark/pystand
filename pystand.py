@@ -241,7 +241,7 @@ def fetch(args: Namespace, release: str, url: str, tdir: Path) -> str | None:
     else:
         # Register external zstd handler (only if Python < 3.14 which has
         # built-in support)
-        if filename.endswith('.zst') and sys.version_info < (3, 14):
+        if filename.lower().endswith('.zst') and sys.version_info < (3, 14):
             from backports.zstd import register_shutil  # type: ignore
             register_shutil()
 
