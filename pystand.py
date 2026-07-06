@@ -35,9 +35,10 @@ GITHUB_SITE = f'https://github.com/{GITHUB_REPO}'
 LATEST_RELEASES = f'{GITHUB_SITE}/releases.atom'
 LATEST_RELEASE_TAG = f'{GITHUB_SITE}/releases/latest'
 DOC = 'https://gregoryszorc.com/docs/python-build-standalone/main/'
+VER = f'{sys.version_info.major}.{sys.version_info.minor}'
 
 # Sample release tag for documentation/usage examples
-SAMPL_RELEASE = '20240415'
+SAMPL_RELEASE = '20260807'
 
 PROG = Path(__file__).stem
 
@@ -243,6 +244,7 @@ def fetch(args: Namespace, release: str, url: str, tdir: Path) -> str | None:
         # built-in support)
         if filename.lower().endswith('.zst') and sys.version_info < (3, 14):
             from backports.zstd import register_shutil  # type: ignore
+
             register_shutil()
 
         try:
@@ -811,7 +813,7 @@ def main() -> str | None:
     )
     opt.add_argument(
         '--purge-days',
-        default=90,
+        default=30,
         type=int,
         help='cache YYYYMMDD release file lists and downloads for '
         'this number of days after last version referencing that '
@@ -957,7 +959,7 @@ class install_:
             help='also install source files if available in distribution download',
         )
         parser.add_argument(
-            'version', nargs='*', help='version to install. E.g. 3.12 or 3.12.3'
+            'version', nargs='*', help=f'version to install. E.g. {VER} or {VER}.1'
         )
 
     @staticmethod
@@ -1477,7 +1479,7 @@ class uv_:
         parser.add_argument(
             '-p',
             '--python',
-            help='version of python to use, e.g. "3.12", default is latest release version',
+            help=f'version of python to use, e.g. "{VER}", default is latest release version',
         )
 
         parser.add_argument('command', help='uv command to run')
@@ -1507,7 +1509,7 @@ class uvx_:
         parser.add_argument(
             '-p',
             '--python',
-            help='version of python to use, e.g. "3.12", default is latest release version',
+            help=f'version of python to use, e.g. "{VER}", default is latest release version',
         )
 
         parser.add_argument('program', help='uvx program to run')

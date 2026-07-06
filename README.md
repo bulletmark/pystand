@@ -153,7 +153,7 @@ options:
   --purge-days PURGE_DAYS
                         cache YYYYMMDD release file lists and downloads for
                         this number of days after last version referencing
-                        that release is removed. Default is 90 days.
+                        that release is removed. Default is 30 days.
   --github-access-token GITHUB_ACCESS_TOKEN
                         optional Github access token. Can specify to reduce
                         rate limiting.
@@ -196,13 +196,13 @@ usage: pystand install [-h] [-r RELEASE] [-a] [-A] [--skip] [-f] [-s]
 Install one, more, or all versions from a python-build-standalone release.
 
 positional arguments:
-  version               version to install. E.g. 3.12 or 3.12.3
+  version               version to install. E.g. 3.14 or 3.14.1
 
 options:
   -h, --help            show this help message and exit
   -r, --release RELEASE
                         install from specified python-build-standalone
-                        YYYYMMDD release (e.g. 20240415), default is latest
+                        YYYYMMDD release (e.g. 20260807), default is latest
                         release
   -a, --all             install ALL versions from release
   -A, --all-prerelease  install ALL versions from release, including pre-
@@ -230,7 +230,7 @@ positional arguments:
 options:
   -h, --help            show this help message and exit
   -r, --release RELEASE
-                        update to specified YYYMMDD release (e.g. 20240415),
+                        update to specified YYYMMDD release (e.g. 20260807),
                         default is latest release
   -a, --all             update ALL versions
   --pre-release         update release version to a later superceding pre-
@@ -260,7 +260,7 @@ options:
                         can be specified with --all)
   -r, --release RELEASE
                         only remove versions if from specified YYYMMDD release
-                        (e.g. 20240415)
+                        (e.g. 20260807)
 
 aliases: r, rm
 ```
@@ -280,7 +280,7 @@ options:
   -v, --verbose         explicitly report why a version is not eligible for
                         update
   -r, --release RELEASE
-                        use specified YYYYMMDD release (e.g. 20240415) for
+                        use specified YYYYMMDD release (e.g. 20260807) for
                         verbose compare, default is latest release
 
 aliases: l
@@ -304,7 +304,7 @@ options:
   -l, --list            just list recent releases
   -r, --release RELEASE
                         python-build-standalone YYYYMMDD release to show (e.g.
-                        20240415), default is latest release
+                        20260807), default is latest release
   -a, --all             show all available distributions for each version from
                         the release
 
@@ -371,7 +371,7 @@ positional arguments:
 
 options:
   -h, --help           show this help message and exit
-  -p, --python PYTHON  version of python to use, e.g. "3.12", default is
+  -p, --python PYTHON  version of python to use, e.g. "3.14", default is
                        latest release version
 ```
 
@@ -389,7 +389,7 @@ positional arguments:
 
 options:
   -h, --help            show this help message and exit
-  -p, --python PYTHON   version of python to use, e.g. "3.12", default is
+  -p, --python PYTHON   version of python to use, e.g. "3.14", default is
                         latest release version
 ```
 
