@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 """
 Command line tool to download, install, and update pre-built Python
 versions from the python-build-standalone project at
@@ -41,6 +40,7 @@ VER = f'{sys.version_info.major}.{sys.version_info.minor}'
 SAMPL_RELEASE = '20260807'
 
 PROG = Path(__file__).stem
+HOME = Path.home()
 
 # Default distributions for various platforms
 DISTRIBUTIONS = {
@@ -115,10 +115,10 @@ class ColorDist(ColorTable):
         return text.split('-', 1)[0]
 
 
-def unexpanduser(path: Path, *, home=Path.home()) -> Path:
+def unexpanduser(path: Path) -> Path:
     "Return path name, with $HOME replaced by ~ (opposite of Path.expanduser())"
-    if path.parts[: len(home.parts)] == home.parts:
-        return Path('~', *path.parts[len(home.parts) :])
+    if path.parts[: len(HOME.parts)] == HOME.parts:
+        return Path('~', *path.parts[len(HOME.parts) :])
 
     return path
 
@@ -294,9 +294,9 @@ class VersionMatcher:
 
         # If no version specified, return the latest release version
         if not version:
-            for version in self.seq:
-                if is_release_version(version):
-                    return version
+            for ver in self.seq:
+                if is_release_version(ver):
+                    return ver
             return None
 
         if version in self.seq:
@@ -316,9 +316,10 @@ class VersionMatcher:
         # Only allow upgrade of formal release to another formal
         # release.
         for full_version in self.seq:
-            if full_version.startswith(version):
-                if not upgrade or not is_release or is_release_version(full_version):
-                    return full_version
+            if full_version.startswith(version) and (
+                not upgrade or not is_release or is_release_version(full_version)
+            ):
+                return full_version
 
         return None
 
@@ -349,7 +350,7 @@ def get_version_names(args: Namespace) -> list[str]:
         if not args.version:
             args.parser.error('Must specify at least one version, or --all.')
 
-    all_names = set(f.name for f in iter_versions(args))
+    all_names = {f.name for f in iter_versions(args)}
 
     # Upconvert all user specified partial version names to full version names
     matcher = VersionMatcher(all_names)
@@ -479,7 +480,7 @@ def get_release_files(args, tag) -> dict[str, Any]:
         try:
             release = gh.get_repo(GITHUB_REPO).get_release(tag)
         except Exception as e:
-            print(f'Error: {str(e)}', file=sys.stderr)
+            print(f'Error: {e}', file=sys.stderr)
             return {}
 
         # Iterate over the release assets and store pertinent files in a
@@ -514,7 +515,7 @@ def update_version_symlinks(args: Namespace) -> None:
 
     # Create a map of all the new major version links
     newlinks_all = defaultdict(set)
-    pre_releases = set(v for v in vers if not is_release_version(v))
+    pre_releases = {v for v in vers if not is_release_version(v)}
     for namevers in vers:
         while '.' in namevers[:-1]:
             namevers_major = namevers.rsplit('.', maxsplit=1)[0]
@@ -533,7 +534,7 @@ def update_version_symlinks(args: Namespace) -> None:
         if ver in pre_releases and (rels := (cands - pre_releases)):
             cands = rels
 
-        newlinks[ver] = sorted(cands, key=parse_version)[-1]
+        newlinks[ver] = max(cands, key=parse_version)
 
     # Remove all old or invalid existing links
     for name, tgt in oldlinks.items():
@@ -588,7 +589,7 @@ def show_list(args: Namespace) -> None:
     "Show a list of available releases"
     latest = parse_version(args._release)
     releases = fetch_tags(args)
-    cached = set(p.name for p in args._releases.iterdir())
+    cached = {p.name for p in args._releases.iterdir()}
     for release in sorted(cached.union(releases)):
         if args.re_match and not re.search(args.re_match, release):
             continue
@@ -854,7 +855,7 @@ def main() -> str | None:
         else:
             return f'Must define a docstring for command class "{name}".'
 
-        aliases = cls.aliases if hasattr(cls, 'aliases') else []
+        aliases = cls.aliases if hasattr(cls, 'aliases') else ()
         title = get_title(desc)
         cmdopt = cmd.add_parser(name, description=desc, help=title, aliases=aliases)
 
@@ -920,7 +921,7 @@ def main() -> str | None:
 # COMMAND
 class install_:
     doc = f'Install one, more, or all versions from a {REPO} release.'
-    aliases = ['i']
+    aliases = ('i',)
 
     @staticmethod
     def init(parser: ArgumentParser) -> None:
@@ -980,7 +981,7 @@ class install_:
                     'Can not specify versions with --all unless also specifying --skip.'
                 )
 
-            skips = set(v for ver in args.version if (v := matcher.match(ver)))
+            skips = {v for ver in args.version if (v := matcher.match(ver))}
 
             args.version = [
                 v
@@ -1020,7 +1021,7 @@ class install_:
 class update_:
     "Update one, more, or all versions to another release."
 
-    aliases = ['u', 'up']
+    aliases = ('u', 'up')
 
     @staticmethod
     def init(parser: ArgumentParser) -> None:
@@ -1116,7 +1117,7 @@ class update_:
 class remove_:
     "Remove/uninstall one, more, or all versions."
 
-    aliases = ['r', 'rm']
+    aliases = ('r', 'rm')
 
     @staticmethod
     def init(parser: ArgumentParser) -> None:
@@ -1157,7 +1158,7 @@ class remove_:
 class list_:
     "List installed versions and show which have an update available."
 
-    aliases = ['l']
+    aliases = ('l',)
 
     @staticmethod
     def init(parser: ArgumentParser) -> None:
@@ -1247,7 +1248,7 @@ class show_:
     View available releases and their distributions at
     {GITHUB_SITE}/releases.
     """
-    aliases = ['s']
+    aliases = ('s',)
 
     @staticmethod
     def init(parser: ArgumentParser) -> None:
@@ -1322,7 +1323,7 @@ class show_:
 class path_:
     "Show path prefix to installed version base directory."
 
-    aliases = ['p']
+    aliases = ('p',)
 
     @staticmethod
     def init(parser: ArgumentParser) -> None:
@@ -1375,7 +1376,7 @@ class path_:
 class cache_:
     "Show size of release download caches."
 
-    aliases = ['c']
+    aliases = ('c',)
 
     @staticmethod
     def init(parser: ArgumentParser) -> None:
@@ -1423,9 +1424,7 @@ class cache_:
                 )
 
             keep = keeplist(args)
-            releases = set(
-                p.name for p in args._downloads.iterdir() if p.name.isdigit()
-            )
+            releases = {p.name for p in args._downloads.iterdir() if p.name.isdigit()}
             releases.update(
                 p.name for p in args._releases.iterdir() if p.name.isdigit()
             )
