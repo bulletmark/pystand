@@ -122,10 +122,10 @@ Type `pystand` or `pystand -h` to view the usage summary:
 
 ```
 usage: pystand [-h] [-D DISTRIBUTION] [-P PREFIX_DIR] [-C CACHE_DIR]
-                  [-M CACHE_MINUTES] [--purge-days PURGE_DAYS]
-                  [--github-access-token GITHUB_ACCESS_TOKEN] [--no-strip]
-                  [--no-color] [--cert {system,certifi,none}] [-V]
-                  {install,i,update,u,up,remove,r,rm,list,l,show,s,path,p,cache,c,uv,uvx} ...
+               [-M CACHE_MINUTES] [--purge-days PURGE_DAYS]
+               [--github-access-token GITHUB_ACCESS_TOKEN] [--no-strip]
+               [--no-color] [--cert {system,certifi,none}] [-V]
+               {install,i,update,u,up,remove,r,rm,list,l,show,s,path,p,cache,c,uv,uvx} ...
 
 Command line tool to download, install, and update pre-built Python versions
 from the python-build-standalone project at https://github.com/astral-
@@ -184,14 +184,13 @@ Some commands offer aliases as shown in parentheses above. Note you can set
 default starting global options in ~/.config/pystand-flags.conf.
 ```
 
-Type `pystand <command> -h` to see specific help/usage for any
-individual command:
+Type `pystand <command> -h` to see specific help/usage for any individual command:
 
 ### Command `install`
 
 ```
 usage: pystand install [-h] [-r RELEASE] [-a] [-A] [--skip] [-f] [-s]
-                          [version ...]
+                       [version ...]
 
 Install one, more, or all versions from a python-build-standalone release.
 
@@ -220,7 +219,7 @@ aliases: i
 
 ```
 usage: pystand update [-h] [-r RELEASE] [-a] [--pre-release] [--skip] [-k]
-                         [version ...]
+                      [version ...]
 
 Update one, more, or all versions to another release.
 
@@ -359,7 +358,7 @@ aliases: c
 
 ```
 usage: pystand uv [-h] [-p PYTHON]
-                     command [subcommand] [uv_args_for_command ...]
+                  command [subcommand] [uv_args_for_command ...]
 
 Run a uv command using a version of python installed by pystand.
 
