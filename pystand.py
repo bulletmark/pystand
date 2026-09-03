@@ -621,16 +621,16 @@ def show_list(args: Namespace) -> None:
         print(f'{release} {dts}{app}{pre}')
 
 
-def get_title(desc: str) -> str:
-    "Return single title line from description"
+def get_title(desc: str, name: str) -> str:
+    "Return single title line from command description"
     res = []
     for line in desc.splitlines():
-        line = line.strip()
-        res.append(line)
-        if line.endswith('.'):
-            return ' '.join(res)
+        if line := line.strip():
+            res.append(line)
+            if line.endswith('.'):
+                return ' '.join(res)
 
-    sys.exit('Must end description with a full stop.')
+    sys.exit(f'Must end {name} command description with a full stop.')
 
 
 def remove(args: Namespace, version: str) -> None:
@@ -671,6 +671,33 @@ def strip_binaries(vdir: Path, distribution: str) -> bool:
     return was_stripped
 
 
+def find_python(vdir: Path) -> Path | None:
+    "Find the python executable in a version directory"
+    for path in (vdir / 'bin' / 'python', vdir / 'python.exe'):
+        if path.is_file():
+            return path
+
+    return None
+
+
+def compile_bytecode(srcdir: Path, tgtdir: Path) -> str | None:
+    "Compile all Python bytecode in a version directory"
+    if not (python := find_python(srcdir)):
+        return f'Python executable not found in {srcdir}'
+
+    cmd = (python, '-m', 'compileall', '-qd', str(tgtdir), str(srcdir))
+
+    try:
+        res = subprocess.run(cmd)
+    except Exception as e:
+        return f'Failed to compile bytecode: {e}'
+
+    if res.returncode != 0:
+        return f'Failed to compile bytecode, error: {res.returncode}'
+
+    return None
+
+
 def install(
     args: Namespace, vdir: Path, release: str, distribution: str, files: dict[str, Any]
 ) -> str | None:
@@ -694,6 +721,11 @@ def install(
 
         if error := set_json(tmpdir / args._data, data):
             error = f'Failed to write {version} data file: {error}'
+        elif c_error := compile_bytecode(tmpdir, vdir):
+            print(
+                f'Warning: Could not compile bytecode for {version}: {c_error}',
+                file=sys.stderr,
+            )
 
     if error:
         shutil.rmtree(tmpdir)
@@ -856,7 +888,7 @@ def main() -> str | None:
             return f'Must define a docstring for command class "{name}".'
 
         aliases = cls.aliases if hasattr(cls, 'aliases') else ()
-        title = get_title(desc)
+        title = get_title(desc, name)
         cmdopt = cmd.add_parser(name, description=desc, help=title, aliases=aliases)
 
         # Set up this commands own arguments, if it has any
@@ -1361,13 +1393,8 @@ class path_:
             if args.resolve:
                 path = path.resolve()
 
-            if args.python_path:
-                basepath = path
-                path = basepath / 'bin' / 'python'
-                if not path.exists():
-                    path = basepath / 'python.exe'
-                    if not path.exists():
-                        return f'Error: Can not find python executable in "{basepath}"'
+            if args.python_path and not (path := find_python(basepath := path)):
+                return f'Error: Can not find python executable in "{basepath}"'
 
             print(path)
 
