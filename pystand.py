@@ -447,7 +447,10 @@ def add_file(files: dict[str, Any], tag: str, name: str, url: str) -> None:
     else:
         return
 
-    impl, ver, arch = name.split('-', 2)
+    try:
+        impl, ver, arch = name.split('-', 2)
+    except ValueError:
+        return
 
     # Modern releases have a '+' in the name to separate the version
     if '+' in ver:
@@ -591,7 +594,7 @@ def show_list(args: Namespace) -> None:
     releases = fetch_tags(args)
     cached = {p.name for p in args._releases.iterdir()}
     for release in sorted(cached.union(releases)):
-        if args.re_match and not re.search(args.re_match, release):
+        if args._re_match and not args._re_match.search(release):
             continue
 
         # Ignore any bogus releases that don't parse as versions
@@ -642,7 +645,9 @@ def remove(args: Namespace, version: str) -> None:
     # Touch the associated release file to ensure it lives until the
     # full purge time has expired if this was the last version using it
     if release := get_json(vdir / args._data).get('release'):
-        (args._releases / release).touch()
+        release_file = args._releases / release
+        if release_file.is_file():
+            release_file.touch()
 
     shutil.rmtree(vdir)
 
@@ -662,11 +667,11 @@ def strip_binaries(vdir: Path, distribution: str) -> bool:
                 if not file.is_symlink() and file.is_file():
                     cmd = f'strip -p --strip-unneeded {file}'.split()
                     try:
-                        subprocess.run(cmd, stderr=subprocess.DEVNULL)
+                        res = subprocess.run(cmd, stderr=subprocess.DEVNULL)
                     except Exception:
                         pass
                     else:
-                        was_stripped = True
+                        was_stripped |= res.returncode == 0
 
     return was_stripped
 
@@ -690,10 +695,10 @@ def compile_bytecode(srcdir: Path, tgtdir: Path) -> str | None:
     try:
         res = subprocess.run(cmd)
     except Exception as e:
-        return f'Failed to compile bytecode: {e}'
+        return f'Compile error: {e}'
 
     if res.returncode != 0:
-        return f'Failed to compile bytecode, error: {res.returncode}'
+        return f'Compile error code: {res.returncode}'
 
     return None
 
@@ -1309,11 +1314,19 @@ class show_:
 
     @staticmethod
     def run(args: Namespace) -> str | None:
+        re_match: re.Pattern | None = None
+        if args.re_match:
+            try:
+                re_match = re.compile(args.re_match)
+            except re.error as error:
+                args.parser.error(f'Invalid regular expression: {error}')
+
         if args.all and args.list:
             args.parser.error('Can not specify --all with --list.')
 
         if args.list:
             args.release = False
+            args._re_match = re_match
             show_list(args)
             return None
 
@@ -1337,9 +1350,7 @@ class show_:
                     if distribution == args._distribution:
                         installable = True
 
-                    if not args.re_match or re.search(
-                        args.re_match, f'{version}+{distribution}'
-                    ):
+                    if not re_match or re_match.search(f'{version}+{distribution}'):
                         print(
                             f'{args._fmtrel(version, release)} '
                             f'{args._fmtdist(distribution)}{app}'
