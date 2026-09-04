@@ -728,7 +728,7 @@ def install(
             error = f'Failed to write {version} data file: {error}'
         elif c_error := compile_bytecode(tmpdir, vdir):
             print(
-                f'Warning: Could not compile bytecode for {version}: {c_error}',
+                f'Warning: Error compiling bytecode for {version}: {c_error}',
                 file=sys.stderr,
             )
 
