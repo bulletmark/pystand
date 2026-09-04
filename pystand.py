@@ -10,6 +10,7 @@ import itertools
 import os
 import platform
 import re
+import shlex
 import shutil
 import ssl
 import subprocess
@@ -254,7 +255,7 @@ def fetch(args: Namespace, release: str, url: str, tdir: Path) -> str | None:
         else:
             pdir = tmpdir / 'python'
             idir = pdir / 'install'
-            if idir.exists():
+            if idir.is_dir():
                 # This is a source distribution, copy the source if
                 # requested
                 if args.include_source:
@@ -266,7 +267,10 @@ def fetch(args: Namespace, release: str, url: str, tdir: Path) -> str | None:
 
                 pdir = idir
 
-            pdir.replace(tdir)
+            if pdir.is_dir():
+                pdir.replace(tdir)
+            else:
+                error = f'Failed to find unpacked python directory in "{url}".'
 
     rm_path(tmpdir)
     return error
@@ -577,7 +581,7 @@ def purge_unused_releases(args: Namespace) -> None:
         for path in args._releases.iterdir():
             if path.name not in keep:
                 if (path.stat().st_mtime + end_secs) < now_secs:
-                    path.unlink()
+                    rm_path(path)
                 else:
                     keep.add(path.name)
 
@@ -590,7 +594,10 @@ def purge_unused_releases(args: Namespace) -> None:
 
 def show_list(args: Namespace) -> None:
     "Show a list of available releases"
-    latest = parse_version(args._release)
+    try:
+        latest = parse_version(args._release)
+    except InvalidVersion:
+        latest = None
     releases = fetch_tags(args)
     cached = {p.name for p in args._releases.iterdir()}
     for release in sorted(cached.union(releases)):
@@ -605,6 +612,7 @@ def show_list(args: Namespace) -> None:
             continue
 
         if dt_str := releases.get(release):
+            dt_str = dt_str.replace('Z', '+00:00')
             dts = (
                 datetime.fromisoformat(dt_str)
                 .astimezone()
@@ -620,7 +628,7 @@ def show_list(args: Namespace) -> None:
         else:
             app = ''
 
-        pre = ' pre-release' if this_version > latest else ''
+        pre = ' pre-release' if (latest and this_version > latest) else ''
         print(f'{release} {dts}{app}{pre}')
 
 
@@ -665,7 +673,7 @@ def strip_binaries(vdir: Path, distribution: str) -> bool:
 
             for file in base.iterdir():
                 if not file.is_symlink() and file.is_file():
-                    cmd = f'strip -p --strip-unneeded {file}'.split()
+                    cmd = ('strip', '-p', '--strip-unneeded', file)
                     try:
                         res = subprocess.run(cmd, stderr=subprocess.DEVNULL)
                     except Exception:
@@ -802,7 +810,10 @@ def run_uv(args: Namespace, cmd: list[str], cmdopts: list[str]) -> str | None:
         py = py.resolve()
         py = py.with_name(py.stem)
 
-    subprocess.run(cmd + ['-p', py] + cmdopts)
+    cmd = cmd + ['-p', str(py)] + cmdopts
+    res = subprocess.run(cmd)
+    if res.returncode != 0:
+        return f'Command "{shlex.join(cmd)}" failed with exit code {res.returncode}.'
 
 
 def main() -> str | None:
@@ -1065,7 +1076,7 @@ class update_:
         parser.add_argument(
             '-r',
             '--release',
-            help='update to specified YYYMMDD release (e.g. '
+            help='update to specified YYYYMMDD release (e.g. '
             f'{SAMPL_RELEASE}), default is latest release',
         )
         parser.add_argument(
@@ -1171,7 +1182,7 @@ class remove_:
             '-r',
             '--release',
             help='only remove versions if from specified '
-            f'YYYMMDD release (e.g. {SAMPL_RELEASE})',
+            f'YYYYMMDD release (e.g. {SAMPL_RELEASE})',
         )
         parser.add_argument(
             'version', nargs='*', help='version to remove (or to skip for --all --skip)'
@@ -1477,6 +1488,10 @@ class cache_:
             for release in args.release:
                 # Allow user to include cache path in release name
                 path = (args._downloads / release).expanduser()
+                if not path.is_dir():
+                    print(f'No caches found for release {release}.', file=sys.stderr)
+                    continue
+
                 release = path.name
 
                 if err := check_release_tag(release):
