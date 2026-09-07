@@ -229,7 +229,7 @@ positional arguments:
 options:
   -h, --help            show this help message and exit
   -r, --release RELEASE
-                        update to specified YYYMMDD release (e.g. 20260807),
+                        update to specified YYYYMMDD release (e.g. 20260807),
                         default is latest release
   -a, --all             update ALL versions
   --pre-release         update release version to a later superceding pre-
@@ -258,8 +258,8 @@ options:
   --skip                skip the specified versions when removing all (only
                         can be specified with --all)
   -r, --release RELEASE
-                        only remove versions if from specified YYYMMDD release
-                        (e.g. 20260807)
+                        only remove versions if from specified YYYYMMDD
+                        release (e.g. 20260807)
 
 aliases: r, rm
 ```
@@ -394,7 +394,7 @@ options:
 
 ## Installation and Upgrade
 
-Python 3.8 or later is required. Arch Linux users can install [`pystand`
+Python 3.9 or later is required. Arch Linux users can install [`pystand`
 from the AUR](https://aur.archlinux.org/packages/pystand) and skip this
 section.
 

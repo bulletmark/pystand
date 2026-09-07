@@ -430,15 +430,18 @@ def get_release_tag(args: Namespace) -> str:
 
         return release
 
-    if args._latest_release.exists():
-        stat = args._latest_release.stat()
-        if time.time() < (stat.st_mtime + int(args.cache_minutes * 60)):
-            return args._latest_release.read_text().strip()
+    latest_release = args._latest_release
+
+    if latest_release.is_file() and (
+        not args.check_latest
+        or time.time() < (latest_release.stat().st_mtime + int(args.cache_minutes * 60))
+    ):
+        return latest_release.read_text().strip()
 
     if not (tag := fetch_tag_latest(args)):
         sys.exit('Latest YYYYMMDD release tag timestamp file is unavailable.')
 
-    args._latest_release.write_text(tag + '\n')
+    latest_release.write_text(tag + '\n')
     return tag
 
 
@@ -563,8 +566,8 @@ def keeplist(args: Namespace) -> set[str]:
     }
 
     # Add current release to keep list (even if not currently installed)
-    if args._latest_release.exists():
-        keep.add(args._latest_release.read_text().strip())
+    if (latest_release := args._latest_release).exists():
+        keep.add(latest_release.read_text().strip())
 
     return keep
 
@@ -592,7 +595,7 @@ def purge_unused_releases(args: Namespace) -> None:
                 rm_path(path)
 
 
-def show_list(args: Namespace) -> None:
+def show_list(args: Namespace, re_match: re.Pattern | None) -> None:
     "Show a list of available releases"
     try:
         latest = parse_version(args._release)
@@ -601,7 +604,7 @@ def show_list(args: Namespace) -> None:
     releases = fetch_tags(args)
     cached = {p.name for p in args._releases.iterdir()}
     for release in sorted(cached.union(releases)):
-        if args._re_match and not args._re_match.search(release):
+        if re_match and not re_match.search(release):
             continue
 
         # Ignore any bogus releases that don't parse as versions
@@ -644,7 +647,7 @@ def get_title(desc: str, name: str) -> str:
     sys.exit(f'Must end {name} command description with a full stop.')
 
 
-def remove(args: Namespace, version: str) -> None:
+def remove_version(args: Namespace, version: str) -> None:
     "Remove a version"
     vdir = args._versions / version
     if not vdir.exists():
@@ -711,7 +714,7 @@ def compile_bytecode(srcdir: Path, tgtdir: Path) -> str | None:
     return None
 
 
-def install(
+def install_version(
     args: Namespace, vdir: Path, release: str, distribution: str, files: dict[str, Any]
 ) -> str | None:
     "Install a version"
@@ -743,7 +746,7 @@ def install(
     if error:
         shutil.rmtree(tmpdir)
     else:
-        remove(args, version)
+        remove_version(args, version)
         tmpdir.replace(vdir)
 
     return error
@@ -814,6 +817,10 @@ def run_uv(args: Namespace, cmd: list[str], cmdopts: list[str]) -> str | None:
     res = subprocess.run(cmd)
     if res.returncode != 0:
         return f'Command "{shlex.join(cmd)}" failed with exit code {res.returncode}.'
+
+
+# List of internal command classes, populated by @Command decorator
+commands = []
 
 
 def main() -> str | None:
@@ -889,12 +896,8 @@ def main() -> str | None:
     cmd = opt.add_subparsers(title='Commands', dest='cmdname')
 
     # Add each command ..
-    for name in globals():
-        if not name[0].islower() or not name.endswith('_'):
-            continue
-
-        cls = globals()[name]
-        name = name[:-1]
+    for cls in commands:
+        name = cls.__name__.rstrip('_')
 
         if hasattr(cls, 'doc'):
             desc = cls.doc.strip()
@@ -912,7 +915,12 @@ def main() -> str | None:
             cls.init(cmdopt)
 
         # Set the function to call
-        cmdopt.set_defaults(func=cls.run, name=name, parser=cmdopt)
+        cmdopt.set_defaults(
+            func=cls.run,
+            name=name,
+            parser=cmdopt,
+            check_latest=getattr(cls, 'check_latest', False),
+        )
 
     args = opt.parse_args()
 
@@ -966,10 +974,17 @@ def main() -> str | None:
     return result
 
 
-# COMMAND
-class install_:
+def Command(command: type) -> type:
+    "Decorator to add given command class to list of commands"
+    commands.append(command)
+    return command
+
+
+@Command
+class install:
     doc = f'Install one, more, or all versions from a {REPO} release.'
     aliases = ('i',)
+    check_latest = True
 
     @staticmethod
     def init(parser: ArgumentParser) -> None:
@@ -1059,17 +1074,18 @@ class install_:
                 )
                 continue
 
-            if error := install(args, vdir, release, args._distribution, files):
+            if error := install_version(args, vdir, release, args._distribution, files):
                 return error
 
             print(f'Version {args._fmtrel(version, release)} installed.')
 
 
-# COMMAND
-class update_:
+@Command
+class update:
     "Update one, more, or all versions to another release."
 
     aliases = ('u', 'up')
+    check_latest = True
 
     @staticmethod
     def init(parser: ArgumentParser) -> None:
@@ -1154,15 +1170,17 @@ class update_:
             # the update.
             args.include_source = (vdir / 'src').is_dir()
 
-            if error := install(args, new_vdir, release_target, distribution, files):
+            if error := install_version(
+                args, new_vdir, release_target, distribution, files
+            ):
                 return error
 
             if nextver != version and not args.keep:
-                remove(args, version)
+                remove_version(args, version)
 
 
-# COMMAND
-class remove_:
+@Command
+class remove:
     "Remove/uninstall one, more, or all versions."
 
     aliases = ('r', 'rm')
@@ -1203,10 +1221,12 @@ class remove_:
 
 
 # COMMAND
+@Command
 class list_:
     "List installed versions and show which have an update available."
 
     aliases = ('l',)
+    check_latest = True
 
     @staticmethod
     def init(parser: ArgumentParser) -> None:
@@ -1289,7 +1309,8 @@ class list_:
 
 
 # COMMAND
-class show_:
+@Command
+class show:
     doc = f"""
     Show versions available from a release.
 
@@ -1297,6 +1318,7 @@ class show_:
     {GITHUB_SITE}/releases.
     """
     aliases = ('s',)
+    check_latest = True
 
     @staticmethod
     def init(parser: ArgumentParser) -> None:
@@ -1332,13 +1354,11 @@ class show_:
             except re.error as error:
                 args.parser.error(f'Invalid regular expression: {error}')
 
-        if args.all and args.list:
-            args.parser.error('Can not specify --all with --list.')
-
         if args.list:
-            args.release = False
-            args._re_match = re_match
-            show_list(args)
+            if args.all:
+                args.parser.error('Can not specify --all with --list.')
+
+            show_list(args, re_match)
             return None
 
         release = args._release
@@ -1373,8 +1393,8 @@ class show_:
             )
 
 
-# COMMAND
-class path_:
+@Command
+class path:
     "Show path prefix to installed version base directory."
 
     aliases = ('p',)
@@ -1421,8 +1441,8 @@ class path_:
             print(path)
 
 
-# COMMAND
-class cache_:
+@Command
+class cache:
     "Show size of release download caches."
 
     aliases = ('c',)
@@ -1522,8 +1542,8 @@ class cache_:
                 show_cache_size(args._downloads, args)
 
 
-# COMMAND
-class uv_:
+@Command
+class uv:
     __doc__ = f'Run a uv command using a version of python installed by {PROG}.'
 
     @staticmethod
@@ -1552,8 +1572,8 @@ class uv_:
         return run_uv(args, cmd, args.uv_args_for_command)
 
 
-# COMMAND
-class uvx_:
+@Command
+class uvx:
     __doc__ = f'Run a program using uvx and a version of python installed by {PROG}.'
 
     @staticmethod

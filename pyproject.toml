@@ -7,7 +7,7 @@ name = "pystand"
 description = "Install Python versions from python-build-standalone project"
 readme = "README.md"
 license = "GPL-3.0-or-later"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 keywords = ["python-build-standalone", "pyenv", "hatch", "pdm"]
 dynamic = ["version"]
 dependencies = [
