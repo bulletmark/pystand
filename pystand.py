@@ -1216,7 +1216,7 @@ class remove:
             dfile = args._versions / version / args._data
             release = get_json(dfile).get('release') or '?'
             if not release_del or release == release_del:
-                remove(args, version)
+                remove_version(args, version)
                 print(f'Version {args._fmtrel(version, release)} removed.')
 
 
