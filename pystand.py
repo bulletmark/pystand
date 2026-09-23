@@ -721,9 +721,7 @@ def install_version(
     version = vdir.name
 
     if not (url := files[version].get(distribution)):
-        return (
-            f'Arch "{distribution}" not found for release {release} version {version}.'
-        )
+        return f'Distribution "{distribution}" not found for release {release} version {version}.'
 
     tmpdir = args._versions / f'.{version}-tmp'
     rm_path(tmpdir)
