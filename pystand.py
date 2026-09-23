@@ -37,6 +37,9 @@ LATEST_RELEASE_TAG = f'{GITHUB_SITE}/releases/latest'
 DOC = 'https://gregoryszorc.com/docs/python-build-standalone/main/'
 VER = f'{sys.version_info.major}.{sys.version_info.minor}'
 
+# Seconds to wait for lock on prefix/cache dirs
+LOCK_TIMEOUT = 5
+
 # Sample release tag for documentation/usage examples
 SAMPL_RELEASE = '20260807'
 
@@ -956,11 +959,14 @@ def main() -> str | None:
     args._latest_release = cache_dir / 'latest_release'
     args._cert = create_cert(args.cert)
 
-    # Only allow one instance of this program to run (to read/write prefix and cache dirs)
-    locks = [filelock.FileLock(d / '.lock') for d in (prefix_dir, cache_dir)]
+    def lock(path: Path) -> filelock.FileLock:
+        "Return a file lock for the given directory path"
+        return filelock.FileLock(path / '.lock', timeout=LOCK_TIMEOUT)
 
+    # Only allow one instance of this program to run (to avoid potential race
+    # condition on writtable dirs)
     try:
-        with locks[0].acquire(blocking=False), locks[1].acquire(blocking=False):
+        with lock(cache_dir), lock(prefix_dir):
             args._release = get_release_tag(args)
             args._fmtrel = ColorRel(args._release, args.no_color).format
             result = args.func(args)
