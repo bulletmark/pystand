@@ -120,9 +120,11 @@ class ColorDist(ColorTable):
 
 
 def unexpanduser(path: Path) -> Path:
-    "Return path name, with $HOME replaced by ~ (opposite of Path.expanduser())"
-    if path.parts[: len(HOME.parts)] == HOME.parts:
-        return Path('~', *path.parts[len(HOME.parts) :])
+    "Return path name, with $HOME replaced by ~, i.e. opposite of Path.expanduser() for current user"
+    startlen = len(hparts := HOME.parts)
+    parts = path.parts
+    if parts[:startlen] == hparts:
+        path = Path('~', *parts[startlen:])
 
     return path
 
