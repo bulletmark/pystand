@@ -1580,7 +1580,8 @@ class man:
     @staticmethod
     def init(parser: ArgumentParser) -> None:
         parser.add_argument(
-            'version', nargs='?', help='installed version to show man page for'
+            'version', nargs='?',
+            help='installed version to show man page for, default is latest'
         )
 
     @staticmethod

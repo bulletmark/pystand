@@ -363,7 +363,7 @@ usage: pystand man [-h] [version]
 Show installed man page for latest or given version.
 
 positional arguments:
-  version     installed version to show man page for
+  version     installed version to show man page for, default is latest
 
 options:
   -h, --help  show this help message and exit
