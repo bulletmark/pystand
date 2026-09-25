@@ -45,6 +45,7 @@ SAMPL_RELEASE = '20260807'
 
 PROG = Path(__file__).stem
 HOME = Path.home()
+MANPATH = Path('share', 'man', 'man1', 'python.1')
 
 # Default distributions for various platforms
 DISTRIBUTIONS = {
@@ -719,6 +720,18 @@ def compile_bytecode(srcdir: Path, tgtdir: Path) -> str | None:
     return None
 
 
+def ensure_manpage_link(vdir: Path) -> None:
+    "Ensure a symlink to the man page for this version exists"
+    manpath = vdir / MANPATH
+    if manpath.is_file():
+        return
+
+    for path in manpath.parent.iterdir():
+        if not path.is_symlink() and path.name.startswith('python'):
+            manpath.symlink_to(path.name)
+            break
+
+
 def install_version(
     args: Namespace, vdir: Path, release: str, distribution: str, files: dict[str, Any]
 ) -> str | None:
@@ -751,6 +764,7 @@ def install_version(
     else:
         remove_version(args, version)
         tmpdir.replace(vdir)
+        ensure_manpage_link(vdir)
 
     return error
 
@@ -976,6 +990,15 @@ def main() -> str | None:
             update_version_symlinks(args)
     except filelock.Timeout:
         return f'ERROR: Another instance of {PROG} is already running.'
+
+    # If the command returned a tuple, treat it as a subprocess command to run
+    if isinstance(result, tuple):
+        try:
+            subprocess.run(result)
+        except Exception as e:
+            result = f'Error running command: {e}'
+        else:
+            result = None
 
     return result
 
@@ -1546,6 +1569,34 @@ class cache:
                     print('Removed file lists cache.')
             else:
                 show_cache_size(args._downloads, args)
+
+
+@Command
+class man:
+    "Show installed man page for latest or given version."
+
+    aliases = ('m',)
+
+    @staticmethod
+    def init(parser: ArgumentParser) -> None:
+        parser.add_argument(
+            'version', nargs='?', help='installed version to show man page for'
+        )
+
+    @staticmethod
+    def run(args: Namespace) -> str | tuple | None:
+        if not (version := args.version):
+            version = get_major_version(args)
+
+        vdir = (args._versions / version).resolve()
+        if not vdir.exists():
+            return f'Version {version} is not installed.'
+
+        man_path = (vdir / MANPATH).parent.parent
+        if not man_path.is_dir():
+            return f'No man page found for version {version}.'
+
+        return ('man', '-M', str(man_path), 'python')
 
 
 @Command

@@ -125,7 +125,7 @@ usage: pystand [-h] [-D DISTRIBUTION] [-P PREFIX_DIR] [-C CACHE_DIR]
                [-M CACHE_MINUTES] [--purge-days PURGE_DAYS]
                [--github-access-token GITHUB_ACCESS_TOKEN] [--no-strip]
                [--no-color] [--cert {system,certifi,none}] [-V]
-               {install,i,update,u,up,remove,r,rm,list,l,show,s,path,p,cache,c,uv,uvx} ...
+               {install,i,update,u,up,remove,r,rm,list,l,show,s,path,p,cache,c,man,m,uv,uvx} ...
 
 Command line tool to download, install, and update pre-built Python versions
 from the python-build-standalone project at https://github.com/astral-
@@ -165,7 +165,7 @@ options:
   -V, --version         just show pystand version
 
 Commands:
-  {install,i,update,u,up,remove,r,rm,list,l,show,s,path,p,cache,c,uv,uvx}
+  {install,i,update,u,up,remove,r,rm,list,l,show,s,path,p,cache,c,man,m,uv,uvx}
     install (i)         Install one, more, or all versions from a python-
                         build-standalone release.
     update (u, up)      Update one, more, or all versions to another release.
@@ -175,6 +175,7 @@ Commands:
     show (s)            Show versions available from a release.
     path (p)            Show path prefix to installed version base directory.
     cache (c)           Show size of release download caches.
+    man (m)             Show installed man page for latest or given version.
     uv                  Run a uv command using a version of python installed
                         by pystand.
     uvx                 Run a program using uvx and a version of python
@@ -352,6 +353,22 @@ options:
                         download caches
 
 aliases: c
+```
+
+### Command `man`
+
+```
+usage: pystand man [-h] [version]
+
+Show installed man page for latest or given version.
+
+positional arguments:
+  version     installed version to show man page for
+
+options:
+  -h, --help  show this help message and exit
+
+aliases: m
 ```
 
 ### Command `uv`
