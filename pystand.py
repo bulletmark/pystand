@@ -723,7 +723,7 @@ def compile_bytecode(srcdir: Path, tgtdir: Path) -> str | None:
 def ensure_manpage_link(vdir: Path) -> None:
     "Ensure a symlink to the man page for this version exists"
     manpath = vdir / MANPATH
-    if manpath.is_file():
+    if manpath.is_symlink() or manpath.exists():
         return
 
     for path in manpath.parent.iterdir():
@@ -762,9 +762,9 @@ def install_version(
     if error:
         shutil.rmtree(tmpdir)
     else:
+        ensure_manpage_link(tmpdir)
         remove_version(args, version)
         tmpdir.replace(vdir)
-        ensure_manpage_link(vdir)
 
     return error
 
@@ -1580,8 +1580,9 @@ class man:
     @staticmethod
     def init(parser: ArgumentParser) -> None:
         parser.add_argument(
-            'version', nargs='?',
-            help='installed version to show man page for, default is latest'
+            'version',
+            nargs='?',
+            help='installed version to show man page for, default is latest',
         )
 
     @staticmethod
