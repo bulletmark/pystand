@@ -6,25 +6,32 @@ https://github.com/astral-sh/python-build-standalone.
 
 from __future__ import annotations
 
-import itertools
+__lazy_modules__ = (
+    'os',
+    'platform',
+    'shutil',
+    'subprocess',
+    'sys',
+    'time',
+    'urllib.request',
+    'filelock',
+    'packaging.version',
+)
+
 import os
 import platform
 import re
-import shlex
 import shutil
 import ssl
 import subprocess
 import sys
 import time
-from collections import defaultdict
 from collections.abc import Iterable, Iterator
-from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 from urllib.request import urlopen
 
 import filelock
-import platformdirs
 from argparse_from_file import ArgumentParser, Namespace
 from packaging.version import InvalidVersion
 from packaging.version import parse as parse_version
@@ -83,6 +90,7 @@ class ColorTable:
     "Base class for color tables"
 
     def __init__(self, initval: str, no_color: bool) -> None:
+        import itertools
         self.table = None if no_color else {self.parse_key(initval): COLORS[0]}
         self.next = itertools.cycle(COLORS[1:-1])
 
@@ -378,6 +386,8 @@ def get_version_names(args: Namespace) -> list[str]:
 
 def check_release_tag(release: str) -> str | None:
     "Check the specified release tag is valid"
+    from datetime import date
+
     if not release.isdigit() or len(release) != len(SAMPL_RELEASE):
         return 'Release must be a YYYYMMDD string.'
 
@@ -515,6 +525,8 @@ def get_release_files(args, tag) -> dict[str, Any]:
 
 def update_version_symlinks(args: Namespace) -> None:
     "Create/update symlinks pointing to latest version"
+    from collections import defaultdict
+
     base = args._versions
     if not base.exists():
         return
@@ -603,6 +615,8 @@ def purge_unused_releases(args: Namespace) -> None:
 
 def show_list(args: Namespace, re_match: re.Pattern | None) -> None:
     "Show a list of available releases"
+    from datetime import datetime
+
     try:
         latest = parse_version(args._release)
     except InvalidVersion:
@@ -818,6 +832,8 @@ def create_cert(option: str) -> ssl.SSLContext | None:
 
 def run_uv(args: Namespace, cmd: list[str], cmdopts: list[str]) -> str | None:
     "Run a uv command with the specified or latest installed python version"
+    import shlex
+
     if not (vers := (args.python or get_major_version(args))):
         return 'No installed python version found.'
 
@@ -842,6 +858,7 @@ commands = []
 
 def main() -> str | None:
     "Main code"
+    import platformdirs
     distro_default = DISTRIBUTIONS.get((platform.system(), platform.machine()))
     distro_help = distro_default or '?unknown?'
 
