@@ -6,17 +6,10 @@ https://github.com/astral-sh/python-build-standalone.
 
 from __future__ import annotations
 
-__lazy_modules__ = (
-    'os',
-    'platform',
-    'shutil',
-    'subprocess',
-    'sys',
-    'time',
-    'urllib.request',
-    'filelock',
-    'packaging.version',
-)
+import sys
+
+if sys.version_info >= (3, 15):
+    sys.set_lazy_imports('all')
 
 import os
 import platform
@@ -24,7 +17,6 @@ import re
 import shutil
 import ssl
 import subprocess
-import sys
 import time
 from collections.abc import Iterable, Iterator
 from pathlib import Path
@@ -91,6 +83,7 @@ class ColorTable:
 
     def __init__(self, initval: str, no_color: bool) -> None:
         import itertools
+
         self.table = None if no_color else {self.parse_key(initval): COLORS[0]}
         self.next = itertools.cycle(COLORS[1:-1])
 
@@ -859,6 +852,7 @@ commands = []
 def main() -> str | None:
     "Main code"
     import platformdirs
+
     distro_default = DISTRIBUTIONS.get((platform.system(), platform.machine()))
     distro_help = distro_default or '?unknown?'
 
