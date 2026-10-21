@@ -6,18 +6,13 @@ https://github.com/astral-sh/python-build-standalone.
 
 from __future__ import annotations
 
-import sys
-
-if sys.version_info >= (3, 15):
-    # Use lazy loading, except for PyGithub library which does not work with it
-    sys.set_lazy_imports_filter(lambda name, _, __: not name.startswith('github'))
-
 import os
 import platform
 import re
 import shutil
 import ssl
 import subprocess
+import sys
 import time
 from collections.abc import Iterable, Iterator
 from pathlib import Path
