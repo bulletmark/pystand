@@ -9,11 +9,8 @@ from __future__ import annotations
 import sys
 
 if sys.version_info >= (3, 15):
-    # PyGithub library does not work with lazy loading
-    def import_filter(importer: str, _: str, __: tuple[str, ...] | None) -> bool:
-        return not importer.startswith('github')
-
-    sys.set_lazy_imports_filter(import_filter)
+    # Use lazy loading, except for PyGithub library which does not work with it
+    sys.set_lazy_imports_filter(lambda name, _, __: not name.startswith('github'))
 
 import os
 import platform
