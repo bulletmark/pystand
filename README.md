@@ -10,12 +10,13 @@ provided:
   |Command  |Aliases  |Description |
   |---------|---------|------------|
   |`install`|`i`      |Install one, more, or all versions from a python-build-standalone release|
-  |`update` |`u`, `up`|Update one, more, or all versions to another releas |
+  |`update` |`u`, `up`|Update one, more, or all versions to another release|
   |`remove` |`r`, `rm`|Remove/uninstall one, more, or all versions|
   |`list`   |`l`      |List installed versions and show which have an update available|
   |`show`   |`s`      |Show versions available from a release|
   |`path`   |`p`      |Show path prefix to installed version base directory|
   |`cache`  |`c`      |Show size of release download caches|
+  |`man`    |`m`      |Show installed man page for latest or given version|
   |`uv`     |         |Run a uv command using a version of python installed by pystand|
   |`uvx`    |         |Run a program using uvx and a version of python installed by pystand|
 
@@ -196,7 +197,7 @@ usage: pystand install [-h] [-r RELEASE] [-a] [-A] [--skip] [-f] [-s]
 Install one, more, or all versions from a python-build-standalone release.
 
 positional arguments:
-  version               version to install. E.g. 3.14 or 3.14.1
+  version               version to install. E.g. 3.15 or 3.15.1
 
 options:
   -h, --help            show this help message and exit
@@ -387,7 +388,7 @@ positional arguments:
 
 options:
   -h, --help           show this help message and exit
-  -p, --python PYTHON  version of python to use, e.g. "3.14", default is
+  -p, --python PYTHON  version of python to use, e.g. "3.15", default is
                        latest release version
 ```
 
@@ -405,7 +406,7 @@ positional arguments:
 
 options:
   -h, --help            show this help message and exit
-  -p, --python PYTHON   version of python to use, e.g. "3.14", default is
+  -p, --python PYTHON   version of python to use, e.g. "3.15", default is
                         latest release version
 ```
 
