@@ -47,20 +47,22 @@ PROG = Path(__file__).stem
 HOME = Path.home()
 MANPATH = Path('share', 'man', 'man1', 'python.1')
 
+STRIPPED_EXT = '-install_only_stripped'
+
 # Default distributions for various platforms
 DISTRIBUTIONS = {
-    ('Linux', 'x86_64'): 'x86_64_v3-unknown-linux-gnu-install_only_stripped',
-    ('Linux', 'aarch64'): 'aarch64-unknown-linux-gnu-install_only_stripped',
-    ('Linux', 'arm64'): 'aarch64-unknown-linux-gnu-install_only_stripped',
-    ('Linux', 'armv7l'): 'armv7-unknown-linux-gnueabihf-install_only_stripped',
-    ('Linux', 'armv8l'): 'armv7-unknown-linux-gnueabihf-install_only_stripped',
-    ('Darwin', 'x86_64'): 'x86_64-apple-darwin-install_only_stripped',
-    ('Darwin', 'aarch64'): 'aarch64-apple-darwin-install_only_stripped',
-    ('Darwin', 'arm64'): 'aarch64-apple-darwin-install_only_stripped',
-    ('Windows', 'x86_64'): 'x86_64-pc-windows-msvc-install_only_stripped',
-    ('Windows', 'i686'): 'i686-pc-windows-msvc-install_only_stripped',
-    ('Windows', 'aarch64'): 'aarch64-pc-windows-msvc-install_only_stripped',
-    ('Windows', 'arm64'): 'aarch64-pc-windows-msvc-install_only_stripped',
+    ('Linux', 'x86_64'): 'x86_64_v3-unknown-linux-gnu' + STRIPPED_EXT,
+    ('Linux', 'aarch64'): 'aarch64-unknown-linux-gnu' + STRIPPED_EXT,
+    ('Linux', 'arm64'): 'aarch64-unknown-linux-gnu' + STRIPPED_EXT,
+    ('Linux', 'armv7l'): 'armv7-unknown-linux-gnueabihf' + STRIPPED_EXT,
+    ('Linux', 'armv8l'): 'armv7-unknown-linux-gnueabihf' + STRIPPED_EXT,
+    ('Darwin', 'x86_64'): 'x86_64-apple-darwin' + STRIPPED_EXT,
+    ('Darwin', 'aarch64'): 'aarch64-apple-darwin' + STRIPPED_EXT,
+    ('Darwin', 'arm64'): 'aarch64-apple-darwin' + STRIPPED_EXT,
+    ('Windows', 'x86_64'): 'x86_64-pc-windows-msvc' + STRIPPED_EXT,
+    ('Windows', 'i686'): 'i686-pc-windows-msvc' + STRIPPED_EXT,
+    ('Windows', 'aarch64'): 'aarch64-pc-windows-msvc' + STRIPPED_EXT,
+    ('Windows', 'arm64'): 'aarch64-pc-windows-msvc' + STRIPPED_EXT,
 }
 
 CERTS = ('system', 'certifi', 'none')
@@ -1380,6 +1382,12 @@ class show:
             help='show all available distributions for each version from the release',
         )
         parser.add_argument(
+            '-d',
+            '--distributions',
+            action='store_true',
+            help='show all available distributions for same family as host distribution',
+        )
+        parser.add_argument(
             're_match',
             nargs='?',
             help='show only versions+distributions '
@@ -1414,11 +1422,13 @@ class show:
                 installed[vdir.name] = distro
 
         installable = False
+        family = args.distributions and args._distribution.removesuffix(STRIPPED_EXT)
         for version in sorted(files, key=parse_version):
             installed_distribution = installed.get(version)
             for distribution in files[version]:
                 app = ' (installed)' if distribution == installed_distribution else ''
-                if args.all or app or distribution == args._distribution:
+                dist = family and distribution.startswith(family)
+                if args.all or app or distribution == args._distribution or dist:
                     if distribution == args._distribution:
                         installable = True
 

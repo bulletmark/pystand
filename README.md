@@ -290,7 +290,7 @@ aliases: l
 ### Command `show`
 
 ```
-usage: pystand show [-h] [-l | -r RELEASE] [-a] [re_match]
+usage: pystand show [-h] [-l | -r RELEASE] [-a] [-d] [re_match]
 
 Show versions available from a release. View available releases and their
 distributions at https://github.com/astral-sh/python-build-
@@ -308,6 +308,8 @@ options:
                         20260807), default is latest release
   -a, --all             show all available distributions for each version from
                         the release
+  -d, --distributions   show all available distributions for same family as
+                        host distribution
 
 aliases: s
 ```
@@ -591,6 +593,16 @@ $ pystand show -a 3.13.*x86_64.*unknown-linux-gnu.*thread
 3.13.0 @ 20241016 distribution="x86_64_v4-unknown-linux-gnu-freethreaded+debug-full"
 3.13.0 @ 20241016 distribution="x86_64_v4-unknown-linux-gnu-freethreaded+lto-full"
 3.13.0 @ 20241016 distribution="x86_64_v4-unknown-linux-gnu-freethreaded+noopt-full"
+```
+
+Or use the `show -d` command and option to show all available 3.13 threaded
+distributions for the same family as the host distribution:
+
+```sh   
+$ pystand show -d 3.13.*thread
+3.13.0 @ 20241016 distribution="x86_64_v3-unknown-linux-gnu-freethreaded+debug-full"
+3.13.0 @ 20241016 distribution="x86_64_v3-unknown-linux-gnu-freethreaded+pgo+lto-full"
+3.13.0 @ 20241016 distribution="x86_64_v3-unknown-linux-gnu-freethreaded+pgo-full"
 ```
 
 So let's install the
